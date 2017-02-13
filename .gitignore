@@ -10,6 +10,7 @@
 # files and folders
 build
 bin
+debug
 cifar-10-batches-bin
 
 ## CUDA ignore filetypes
