@@ -6,49 +6,6 @@
 
 #include "layer.h"
 
-// constructors
-layer::layer(double *layer_input_, layer *previous_layer_)
-{
-	layer_input = layer_input_;
-	previous_layer = previous_layer_;
-	field_width = previous_layer->field_width_out;
-	field_height = previous_layer->field_height_out;
-	stride_x = previous_layer->stride_x;
-	stride_y = previous_layer->stride_y;
-	filter_size = previous_layer->filter_size;
-	layer_depth = previous_layer->layer_depth;
-	actv_fn = SIGMOID;
-}
-
-layer::layer(double *layer_input_, int field_size, int stride, int zero_pad, int filter_size_, int layer_depth_)
-{
-	layer_input = layer_input_;
-	field_width = field_size;
-	field_height = field_size;
-	stride_x = stride;
-	stride_y = stride;
-	zero_pad_x = zero_pad;
-	zero_pad_y = zero_pad;
-	filter_size = filter_size_;
-	layer_depth = layer_depth_;
-	actv_fn = SIGMOID;
-}
-
-layer::layer(double *layer_input_, int field_width_, int field_height_, int stride_x_, int stride_y_, int zero_pad_x_,
-		int zero_pad_y_, int filter_size_, int layer_depth_)
-{
-	layer_input = layer_input_;
-	field_width = field_width_;
-	field_height = field_height_;
-	stride_x = stride_x_;
-	stride_y = stride_y_;
-	zero_pad_x = zero_pad_x_;
-	zero_pad_y = zero_pad_y_;
-	filter_size = filter_size_;
-	layer_depth = layer_depth_;
-	actv_fn = SIGMOID;
-}
-
 void layer::initialise()
 {
 	//resize weights
@@ -66,9 +23,56 @@ void layer::initialise()
 	}
 	//resize layeroutput
 	layer_output.resize(field_width_out*field_height_out*layer_depth_out);
-	//cast (seems like this isn't needed for thrust?)
-	//layer_output_r = 	thrust::raw_pointer_cast(layer_output);
-	//weights_r = 		thrust::raw_pointer_cast(weights);
+	layer_output_r = thrust::raw_pointer_cast( &(layer_output[0]) );
+}
+
+// constructors
+layer::layer(double *layer_input_, layer *previous_layer_)
+{
+	layer_input = layer_input_;
+	previous_layer = previous_layer_;
+	field_width = previous_layer->field_width_out;
+	field_height = previous_layer->field_height_out;
+	stride_x = previous_layer->stride_x;
+	stride_y = previous_layer->stride_y;
+	filter_size = previous_layer->filter_size;
+	layer_depth = previous_layer->layer_depth;
+	actv_fn = SIGMOID;
+
+	initialise();
+}
+
+layer::layer(double *layer_input_, int field_size, int stride, int zero_pad, int filter_size_, int layer_depth_)
+{
+	layer_input = layer_input_;
+	field_width = field_size;
+	field_height = field_size;
+	stride_x = stride;
+	stride_y = stride;
+	zero_pad_x = zero_pad;
+	zero_pad_y = zero_pad;
+	filter_size = filter_size_;
+	layer_depth = layer_depth_;
+	actv_fn = SIGMOID;
+
+	initialise();
+}
+
+layer::layer(double *layer_input_, int field_width_, int field_height_, int stride_x_, int stride_y_, int zero_pad_x_,
+		int zero_pad_y_, int filter_size_, int layer_depth_)
+{
+	layer_input = layer_input_;
+	field_width = field_width_;
+	field_height = field_height_;
+	stride_x = stride_x_;
+	stride_y = stride_y_;
+	zero_pad_x = zero_pad_x_;
+	zero_pad_y = zero_pad_y_;
+	filter_size = filter_size_;
+	layer_depth = layer_depth_;
+	actv_fn = SIGMOID;
+
+	initialise();
 }
 
 void layer::set_pool(bool pool_)
@@ -112,7 +116,7 @@ void layer::print_metadata()
 	std::cout << "Layer Type: " << io::layer_type_to_string(lyr_typ) << std::endl;
 	std::cout << "Connectivity: " << io::layer_connectivity_to_string(lyr_conv) << std::endl;
 	std::cout << "Activation_Function: " << io::activation_function_to_string(actv_fn) << std::endl;
-	std::cout << "Pool layer?" << pool << std::endl;
+	std::cout << "Pool layer: " << pool << std::endl;
 	std::cout << "layer width: " << field_width << std::endl;
 	std::cout << "layer height: " << field_height << std::endl;
 	std::cout << "stride x: " << stride_x << std::endl;

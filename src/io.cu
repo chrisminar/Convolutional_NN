@@ -82,7 +82,7 @@ void read_CIFAR10(image_DB &idb)
     read_batch(filename, idb.training, idb.training_labels);
 }
 
-void operator >> (const YAML::Node & node, network N)
+void operator >> (const YAML::Node & node, network &N)
 {
 	node["field_size"][0] >> N.field_width;
 	node["field_size"][1] >> N.field_height;

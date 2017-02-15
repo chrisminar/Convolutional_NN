@@ -6,6 +6,7 @@
 
 #include "io.h"
 #include "network.h"
+#include <vector>
 
 //constructor
 network::network(image_DB *idb)
@@ -13,9 +14,42 @@ network::network(image_DB *idb)
 	IDB = idb;
 }
 
-void network::initialise()
+void network::initialise_layers()
 {
-	//you are hear, initialise network with layers
+	//YOU ARE HERE todo filter size not set for layers, figure out layer depth out
+	//make layers
+	//todo input/minibatch need to beinitilised and resized and whatnot before layers are initialised
+	for (int i=0; i<activation_functions.size(); i++)
+	{
+		std::cout<<"print from first loop\n";
+		if (i == 0)
+		{
+			double* batch_data_r = thrust::raw_pointer_cast( &(batch_data[0]) );
+			layers.push_back(layer(batch_data_r, field_height, field_width, stride_x, stride_y, zero_pad_x, zero_pad_y, filter_size, 3));
+			layers[0].lyr_typ = INPUT;
+		}
+		else if (i == activation_functions.size() - 1)
+		{
+			layers.push_back(layer(layers[i-1].layer_output_r, &layers[i-1]));
+			layers[i].lyr_typ = OUTPUT;
+		}
+		else
+		{
+			layers.push_back(layer(layers[i-1].layer_output_r, &layers[i-1]));
+			layers[i].lyr_typ = HIDDEN;
+		}
+		layers[i].lyr_conv =  layer_connectivities[i];
+		layers[i].pool = pools[i];
+		layers[i].actv_fn = activation_functions[i];
+		layers[i].layer_position = i;
+	}
+	//set next layer
+	for (int i=0; i<layers.size(); i++)
+	{
+		if (i != layers.size() - 1)
+			layers[i].next_layer = &layers[i+1];
+		layers[i].print_metadata();
+	}
 }
 
 void network::print_network_info()

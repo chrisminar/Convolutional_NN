@@ -5,11 +5,11 @@
  */
 
 #pragma once
-#include <thrust/device_vector.h>
+#include "io.h"
 #include "layer.h"
 #include "image_DB.h"
-#include "io.h"
-#include "database.h"
+#include <thrust/device_vector.h>
+#include <vector>
 
 class network
 {
@@ -33,7 +33,7 @@ public:
 
 	//constructor
 	network(image_DB *idb);
-	void initialise();
+	void initialise_layers();
 	void print_network_info();
 	void parse_network_file(std::string fname);
 

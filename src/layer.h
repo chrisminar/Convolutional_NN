@@ -20,6 +20,9 @@ public:
 	thrust::device_vector<double> layer_output;
 	thrust::device_vector<double> weights;
 
+	// layer array raw pointers
+	double* layer_output_r;
+
 	// Layer metadata
 	activation_function actv_fn;
 	layer_connectivity lyr_conv;
@@ -50,17 +53,19 @@ public:
 	//
 	// Class Methods
 	//
+	void initialise();
 	// Constructors
 	layer(double *layer_input, layer *prev_layer);
 	layer(double *layer_input, int field_size, int stride, int zero_pad, int fltr_size, int lyr_depth);
 	layer(double *layer_input, int field_width, int field_height, int stride_x, int stride_y, int zero_pad_x,
 			int zero_pad_y, int filter_size, int lyr_depth);
-	void initialise();
+	//set functions
 	void set_pool(bool pool_);
 	void set_next_layer(layer *nxt_layer);
 	void set_layer_connectivity(layer_connectivity layer_connectivity_);
 	void set_layer_position(int layer_position);
 	void set_layer_type(layer_type lyr_typ_);
 	void set_activation_function(activation_function actv_fn_);
+	//io
 	void print_metadata();
 };

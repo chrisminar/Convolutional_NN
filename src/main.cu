@@ -16,10 +16,8 @@ int main()
     io::read_CIFAR10(idb);
 	std::string fname = "/scratch/src/convNet/convNet/validation/CIFAR10.yaml";
 	io::parse_network_file(fname, ntwrk);
-
-    //ntwrk.initialise();
-
-    //ntwrk.print_network_info();
+	ntwrk.print_network_info();
+	ntwrk.initialise_layers();
 
     return 0;
 }
