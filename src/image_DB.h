@@ -5,6 +5,7 @@
  */
 
 #pragma once
+#include <thrust/host_vector.h>
 
 class image_DB
 {

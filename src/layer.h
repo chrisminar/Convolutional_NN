@@ -7,6 +7,7 @@
 #pragma once
 #include <thrust/device_vector.h>
 #include "types.h"
+#include "io.h"
 
 class layer
 {
@@ -43,8 +44,8 @@ public:
 	double learning_rate;
 
 	//array pointers
-	double	*layer_output_r,
-			*weights_r;
+	//double	*layer_output_r,
+	//		*weights_r;
 
 	//
 	// Class Methods

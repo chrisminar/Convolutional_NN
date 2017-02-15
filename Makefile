@@ -41,9 +41,14 @@ SRCS = $(shell find $(SRC_DIR) -type f -name \*$(SRC_EXT))
 # absolute path of all object files to be created
 OBJS = $(patsubst $(SRC_DIR)/%, $(BUILD_DIR)/%, $(SRCS:$(SRC_EXT)=.o))
 
-# include header files from convNet and thrust?
+# include header files from convNet
 INC = -I $(SRC_DIR)
-#INC = -I $(SRC_DIR) -I $(CUSP_ROOT)
+
+#path of yaml static libary
+EXT_LIBS = $(PROJ_ROOT)/external/lib/libyaml-cpp.a
+# include YAML header files
+INC += -I $(PROJ_ROOT)/external/yaml-cpp/include
+
 
 .PHONY: all
 

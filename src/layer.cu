@@ -1,5 +1,5 @@
 /***************************************************************************//**
- * \file types.h
+ * \file layer.cu
  * \author Christopher Minar (chrisminar@gmail.com)
  * \brief Implementaiton of the class \c layer
  */
@@ -66,9 +66,9 @@ void layer::initialise()
 	}
 	//resize layeroutput
 	layer_output.resize(field_width_out*field_height_out*layer_depth_out);
-	//cast
-	layer_output_r = 	thrust::raw_pointer_cast(layer_output);
-	weights_r = 		thrust::raw_pointer_cast(weights);
+	//cast (seems like this isn't needed for thrust?)
+	//layer_output_r = 	thrust::raw_pointer_cast(layer_output);
+	//weights_r = 		thrust::raw_pointer_cast(weights);
 }
 
 void layer::set_pool(bool pool_)
@@ -81,7 +81,7 @@ void layer::set_next_layer(layer *next_layer_)
 	next_layer = next_layer_;
 }
 
-void layer_set_layer_position(int layer_position_)
+void layer::set_layer_position(int layer_position_)
 {
 	layer_position = layer_position_;
 }
@@ -89,10 +89,10 @@ void layer_set_layer_position(int layer_position_)
 void layer::set_layer_type(layer_type layer_type_)
 {
 	lyr_typ = layer_type_;
-	if (lyr_type_ == 0)
+	if (layer_type_ == 0)
 		lyr_typ = INPUT;
 	else
-		lyr_type = HIDDEN;
+		lyr_typ = HIDDEN;
 }
 
 void layer::set_layer_connectivity(layer_connectivity lyr_conv_)
@@ -109,9 +109,9 @@ void layer::print_metadata()
 {
 	std::cout << "\n\nPrinting information for layer " << layer_position << std::endl;
 	std::cout << "---------------------------------------------------------------------\n";
-	std::cout << "Layer Type: " << layer_type_to_string(lyr_typ) << std::endl;
-	std::cout << "Connectivity: " << layer_connectivity_to_string(lyr_conv) << std::endl;
-	std::cout << "Activation_Function: " << activation_funciton_to_string(actv_fn) << std::endl;
+	std::cout << "Layer Type: " << io::layer_type_to_string(lyr_typ) << std::endl;
+	std::cout << "Connectivity: " << io::layer_connectivity_to_string(lyr_conv) << std::endl;
+	std::cout << "Activation_Function: " << io::activation_function_to_string(actv_fn) << std::endl;
 	std::cout << "Pool layer?" << pool << std::endl;
 	std::cout << "layer width: " << field_width << std::endl;
 	std::cout << "layer height: " << field_height << std::endl;
@@ -124,3 +124,8 @@ void layer::print_metadata()
 	std::cout << "layer_depth out: " << layer_depth_out << std::endl;
 	std::cout << "learning_rate: " << learning_rate << std::endl;
 }
+
+//todo initialise weights
+//todo write activation function
+//todo write pool
+//todo figure out biases
