@@ -17,6 +17,7 @@ namespace io
 void read_batch(std::string filename, thrust::host_vector<int> &vec, thrust::host_vector<int> &label);
 void read_CIFAR10(image_DB &idb);
 void parse_network_file(std::string fname, network &N);
+void print_gpu_data();
 
 std::string layer_type_to_string(layer_type typ);
 layer_type string_to_layer_type(std::string s);

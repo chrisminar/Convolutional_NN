@@ -11,6 +11,7 @@
 
 int main()
 {
+	io::print_gpu_data();
 	image_DB idb;
 	network ntwrk(&idb);
     io::read_CIFAR10(idb);
@@ -21,3 +22,10 @@ int main()
 
     return 0;
 }
+
+//todo make print info dump to a file
+//todo initialise weights
+//todo write activation function
+//todo write pool
+//todo figure out biases
+//you are currently working on implementing backpropogation in layers

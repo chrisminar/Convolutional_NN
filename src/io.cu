@@ -84,13 +84,23 @@ void read_CIFAR10(image_DB &idb)
 
 void operator >> (const YAML::Node & node, network &N)
 {
+	node["batch_size"] >> N.batch_size;
 	node["field_size"][0] >> N.field_width;
 	node["field_size"][1] >> N.field_height;
 	node["stride"][0] >> N.stride_x;
 	node["stride"][1] >> N.stride_y;
 	node["zero_pad"][0] >> N.zero_pad_x;
 	node["zero_pad"][1] >> N.zero_pad_y;
+	node["filter_size"] >> N.filter_size;
 	node["learning_rate"] >> N.learning_rate;
+	//layer depth
+	const YAML::Node &depth = node["depth"];
+	int temp_depth;
+	for (int i=0; i<depth.size(); i++)
+	{
+		depth[i] >> temp_depth;
+		N.layer_depth.push_back(temp_depth);
+	}
 	//activation functions
 	const YAML::Node &actv = node["activation_functions"];
 	std::string temp_actv;
@@ -128,6 +138,37 @@ void parse_network_file(std::string fname, network &N)
 	{
 		doc[i] >> N;
 	}
+}
+
+void print_gpu_data()
+{
+    const int kb = 1024;
+    const int mb = kb * kb;
+    std::cout << "NBody.GPU" << std::endl << "=========" << std::endl << std::endl;
+
+    std::cout << "CUDA version:   v" << CUDART_VERSION << std::endl;
+    std::cout << "Thrust version: v" << THRUST_MAJOR_VERSION << "." << THRUST_MINOR_VERSION << std::endl << std::endl;
+
+    int devCount;
+    cudaGetDeviceCount(&devCount);
+    std::cout << "CUDA Devices: " << std::endl << std::endl;
+
+    for(int i = 0; i < devCount; ++i)
+    {
+        cudaDeviceProp props;
+        cudaGetDeviceProperties(&props, i);
+        std::cout << i << ": " << props.name << ": " << props.major << "." << props.minor << std::endl;
+        std::cout << "  Global memory:   " << props.totalGlobalMem / mb << "mb" << std::endl;
+        std::cout << "  Shared memory:   " << props.sharedMemPerBlock / kb << "kb" << std::endl;
+        std::cout << "  Constant memory: " << props.totalConstMem / kb << "kb" << std::endl;
+        std::cout << "  Block registers: " << props.regsPerBlock << std::endl << std::endl;
+
+        std::cout << "  Warp size:         " << props.warpSize << std::endl;
+        std::cout << "  Threads per block: " << props.maxThreadsPerBlock << std::endl;
+        std::cout << "  Max block dimensions: [ " << props.maxThreadsDim[0] << ", " << props.maxThreadsDim[1]  << ", " << props.maxThreadsDim[2] << " ]" << std::endl;
+        std::cout << "  Max grid dimensions:  [ " << props.maxGridSize[0] << ", " << props.maxGridSize[1]  << ", " << props.maxGridSize[2] << " ]" << std::endl;
+        std::cout << std::endl;
+    }
 }
 
 std::string layer_type_to_string(layer_type typ)

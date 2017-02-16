@@ -1,9 +1,11 @@
 - type: network
+  batch_size: 50
   field_size: [32, 32]
   stride: [2, 2]
   zero_pad: [0, 0]
   filter_size: 3
   learning_rate: 0.2
+  depth: [16, 32, 32, 32]
   activation_functions: [SIGMOID, SIGMOID, SIGMOID, SIGMOID]
   pools: [true, true, true, false]
   layer_connectivities: [CONVOLUTIONAL, CONVOLUTIONAL, CONVOLUTIONAL, FULLY_CONNECTED]

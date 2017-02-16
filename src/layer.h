@@ -16,12 +16,12 @@ public:
 	// Class Members
 	//
 	// Layer arrays
-	double *layer_input;
-	thrust::device_vector<double> layer_output;
-	thrust::device_vector<double> weights;
+	int *layer_input;
+	thrust::device_vector<int> layer_output;
+	thrust::device_vector<int> weights;
 
 	// layer array raw pointers
-	double* layer_output_r;
+	int* layer_output_r;
 
 	// Layer metadata
 	activation_function actv_fn;
@@ -41,7 +41,7 @@ public:
 		zero_pad_x,
 		zero_pad_y,
 		filter_size,
-		layer_depth, //todo setup layer_depth out
+		layer_depth,
 		layer_depth_out,
 		layer_position;
 	double learning_rate;
@@ -55,9 +55,9 @@ public:
 	//
 	void initialise();
 	// Constructors
-	layer(double *layer_input, layer *prev_layer);
-	layer(double *layer_input, int field_size, int stride, int zero_pad, int fltr_size, int lyr_depth);
-	layer(double *layer_input, int field_width, int field_height, int stride_x, int stride_y, int zero_pad_x,
+	layer(int *layer_input, layer *prev_layer);
+	layer(int *layer_input, int field_size, int stride, int zero_pad, int fltr_size, int lyr_depth);
+	layer(int *layer_input, int field_width, int field_height, int stride_x, int stride_y, int zero_pad_x,
 			int zero_pad_y, int filter_size, int lyr_depth);
 	//set functions
 	void set_pool(bool pool_);

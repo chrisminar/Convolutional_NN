@@ -16,32 +16,45 @@ network::network(image_DB *idb)
 
 void network::initialise_layers()
 {
-	//YOU ARE HERE todo filter size not set for layers, figure out layer depth out
-	//make layers
+	//copy image dbh from host to device
+	IDB->batch_1_D = IDB->batch_1;
+	IDB->batch_1_labels_D = IDB->batch_1_labels;
+	IDB->training_D = IDB->training;
+	IDB->training_labels_D = IDB->training_labels;
+	//creat pointers
+	mini_batch_r = thrust::raw_pointer_cast( &(IDB->batch_1_D[0]) );
+	test_data_r = thrust::raw_pointer_cast( &(IDB->training_D[0]) );
+	mini_batch_label_r = thrust::raw_pointer_cast( &(IDB->batch_1_labels_D[0]) );
+	test_data_label_r = thrust::raw_pointer_cast( &(IDB->training_labels_D[0]) );
+
 	//todo input/minibatch need to beinitilised and resized and whatnot before layers are initialised
+	//make layers
 	for (int i=0; i<activation_functions.size(); i++)
 	{
-		std::cout<<"print from first loop\n";
 		if (i == 0)
 		{
-			double* batch_data_r = thrust::raw_pointer_cast( &(batch_data[0]) );
-			layers.push_back(layer(batch_data_r, field_height, field_width, stride_x, stride_y, zero_pad_x, zero_pad_y, filter_size, 3));
+			layers.push_back(layer(mini_batch_r, field_height, field_width, stride_x, stride_y, zero_pad_x, zero_pad_y, filter_size, 3));
 			layers[0].lyr_typ = INPUT;
+			layers[i].layer_depth_out = layer_depth[i+1];
 		}
 		else if (i == activation_functions.size() - 1)
 		{
 			layers.push_back(layer(layers[i-1].layer_output_r, &layers[i-1]));
 			layers[i].lyr_typ = OUTPUT;
+			layers[i].layer_depth_out = layer_depth[i];
 		}
 		else
 		{
 			layers.push_back(layer(layers[i-1].layer_output_r, &layers[i-1]));
 			layers[i].lyr_typ = HIDDEN;
+			layers[i].layer_depth_out = layer_depth[i+1];
 		}
 		layers[i].lyr_conv =  layer_connectivities[i];
 		layers[i].pool = pools[i];
 		layers[i].actv_fn = activation_functions[i];
 		layers[i].layer_position = i;
+		layers[i].filter_size = filter_size;
+		layers[i].layer_depth = layer_depth[i];
 	}
 	//set next layer
 	for (int i=0; i<layers.size(); i++)

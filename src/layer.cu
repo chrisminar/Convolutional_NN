@@ -9,7 +9,7 @@
 void layer::initialise()
 {
 	//resize weights
-	weights.resize(filter_size*filter_size*layer_depth); //todo need some sort of bias term //todo should it be layer_depth in or out?
+	weights.resize(filter_size*filter_size*layer_depth); //todo need some sort of bias term
 	//set output metadata
 	if (pool)
 	{
@@ -27,7 +27,7 @@ void layer::initialise()
 }
 
 // constructors
-layer::layer(double *layer_input_, layer *previous_layer_)
+layer::layer(int *layer_input_, layer *previous_layer_)
 {
 	layer_input = layer_input_;
 	previous_layer = previous_layer_;
@@ -42,7 +42,7 @@ layer::layer(double *layer_input_, layer *previous_layer_)
 	initialise();
 }
 
-layer::layer(double *layer_input_, int field_size, int stride, int zero_pad, int filter_size_, int layer_depth_)
+layer::layer(int *layer_input_, int field_size, int stride, int zero_pad, int filter_size_, int layer_depth_)
 {
 	layer_input = layer_input_;
 	field_width = field_size;
@@ -58,7 +58,7 @@ layer::layer(double *layer_input_, int field_size, int stride, int zero_pad, int
 	initialise();
 }
 
-layer::layer(double *layer_input_, int field_width_, int field_height_, int stride_x_, int stride_y_, int zero_pad_x_,
+layer::layer(int *layer_input_, int field_width_, int field_height_, int stride_x_, int stride_y_, int zero_pad_x_,
 		int zero_pad_y_, int filter_size_, int layer_depth_)
 {
 	layer_input = layer_input_;
@@ -128,8 +128,3 @@ void layer::print_metadata()
 	std::cout << "layer_depth out: " << layer_depth_out << std::endl;
 	std::cout << "learning_rate: " << learning_rate << std::endl;
 }
-
-//todo initialise weights
-//todo write activation function
-//todo write pool
-//todo figure out biases

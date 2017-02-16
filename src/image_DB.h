@@ -6,6 +6,7 @@
 
 #pragma once
 #include <thrust/host_vector.h>
+#include <thrust/device_vector.h>
 
 class image_DB
 {
@@ -23,4 +24,18 @@ public:
 								batch_4_labels,
 								batch_5_labels,
 								training_labels;
+
+	thrust::device_vector<int>	batch_1_D,
+								batch_2_D,
+								batch_3_D,
+								batch_4_D,
+								batch_5_D,
+								training_D;
+
+	thrust::device_vector<int>	batch_1_labels_D,
+								batch_2_labels_D,
+								batch_3_labels_D,
+								batch_4_labels_D,
+								batch_5_labels_D,
+								training_labels_D;
 };
