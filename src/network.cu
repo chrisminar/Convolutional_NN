@@ -14,6 +14,21 @@ network::network(image_DB *idb)
 	IDB = idb;
 }
 
+//run the network
+network::run()
+{
+	//todo change INPUT layer depth to 1, I think we two layer depths per layer, one for input and one for output
+	//todo change stride to 1
+	//todo need to initialse weights
+	//todo need to correctly resize the output data (might need to recast?) (might need to be done much earlier)
+	//todo whats going on with weight deltas and deltas?
+	//todo check if inputs to convolute work, combination of zeropad
+
+	//convolute each layer
+	//activation funciton on each layer
+	//pool layer?
+}
+
 void network::initialise_layers()
 {
 	//copy image dbh from host to device

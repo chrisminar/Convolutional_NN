@@ -42,5 +42,6 @@ public:
 	void initialise_layers();
 	void print_network_info();
 	void parse_network_file(std::string fname);
+	void run();
 
 };
