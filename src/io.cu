@@ -94,12 +94,15 @@ void operator >> (const YAML::Node & node, network &N)
 	node["filter_size"] >> N.filter_size;
 	node["learning_rate"] >> N.learning_rate;
 	//layer depth
-	const YAML::Node &depth = node["depth"];
+	const YAML::Node &depthi = node["depth_in"];
+	const YAML::Node &deptho = node["depth_out"];
 	int temp_depth;
-	for (int i=0; i<depth.size(); i++)
+	for (int i=0; i<depthi.size(); i++)
 	{
-		depth[i] >> temp_depth;
+		depthi[i] >> temp_depth;
 		N.layer_depth.push_back(temp_depth);
+		deptho[i] >> temp_depth;
+		N.layer_depth_out.push_back(temp_depth);
 	}
 	//activation functions
 	const YAML::Node &actv = node["activation_functions"];

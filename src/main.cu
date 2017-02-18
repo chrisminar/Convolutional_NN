@@ -24,8 +24,7 @@ int main()
 }
 
 //todo make print info dump to a file
-//todo initialise weights
-//todo write activation function
-//todo write pool
 //todo figure out biases
-//you are currently working on implementing backpropogation in layers
+//todo need to test each kernel and make a testing platform
+//specifically need to test each of the indexes
+//	todothis I need to create a method to print data from the kernels

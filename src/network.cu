@@ -7,6 +7,7 @@
 #include "io.h"
 #include "network.h"
 #include <vector>
+#include "run.h"
 
 //constructor
 network::network(image_DB *idb)
@@ -17,16 +18,28 @@ network::network(image_DB *idb)
 //run the network
 network::run()
 {
-	//todo change INPUT layer depth to 1, I think we two layer depths per layer, one for input and one for output
-	//todo change stride to 1
+
 	//todo need to initialse weights
 	//todo need to correctly resize the output data (might need to recast?) (might need to be done much earlier)
 	//todo whats going on with weight deltas and deltas?
 	//todo check if inputs to convolute work, combination of zeropad
 
-	//convolute each layer
-	//activation funciton on each layer
-	//pool layer?
+	const int blocksize = 256;
+
+	//for (int i=0; i < layers.size(); i++)
+	for (int i=0; i < 1; i++)
+	{
+		//convolute each layer
+		dim3 conv_g( int( (layers[i].field_width*layers[i].field_height*layers[i].layer_depth*batch_size - 0.5)/blocksize ) + 1, 1);
+		dim3 conv_b(blocksize, 1);
+		kernels::convolute<<<conv_g,conv_b>>>(layers[i].layer_input, layers[i].layer_temp, layers[i].weights, layers[i].field_width,
+							layers[i].field_height, layers[i].stride_x, layers[i].stride_y[i], layers[i].zero_pad_x,
+							layers[i].zero_pad_y, layers[i].filter_size, batch_size, layers[i].layer_depth, layers[i].layer_depth_out);
+
+
+		//activation funciton on each layer
+		//pool layer?
+	}
 }
 
 void network::initialise_layers()
@@ -50,19 +63,16 @@ void network::initialise_layers()
 		{
 			layers.push_back(layer(mini_batch_r, field_height, field_width, stride_x, stride_y, zero_pad_x, zero_pad_y, filter_size, 3));
 			layers[0].lyr_typ = INPUT;
-			layers[i].layer_depth_out = layer_depth[i+1];
 		}
 		else if (i == activation_functions.size() - 1)
 		{
 			layers.push_back(layer(layers[i-1].layer_output_r, &layers[i-1]));
 			layers[i].lyr_typ = OUTPUT;
-			layers[i].layer_depth_out = layer_depth[i];
 		}
 		else
 		{
 			layers.push_back(layer(layers[i-1].layer_output_r, &layers[i-1]));
 			layers[i].lyr_typ = HIDDEN;
-			layers[i].layer_depth_out = layer_depth[i+1];
 		}
 		layers[i].lyr_conv =  layer_connectivities[i];
 		layers[i].pool = pools[i];
@@ -70,6 +80,7 @@ void network::initialise_layers()
 		layers[i].layer_position = i;
 		layers[i].filter_size = filter_size;
 		layers[i].layer_depth = layer_depth[i];
+		layers[i].layer_depth_out = layer_depth_out[i]
 	}
 	//set next layer
 	for (int i=0; i<layers.size(); i++)
@@ -93,6 +104,13 @@ void network::print_network_info()
 	std::cout << "\nPool layer: ";
 	for (int i=0; i<pools.size(); i++)
 			std::cout << pools[i] << "\t";
+	std::cout << "\nLayer depths";
+	std::cout << "\nin: ";
+	for (int i=0; i<layer_depth.size(); i++)
+			std::cout << layer_depth[i] << "\t";
+	std::cout << "\nout: ";
+	for (int i=0; i<layer_depth.size(); i++)
+				std::cout << layer_depth_out[i] << "\t";
 	std::cout << "\nlayer width: " << field_width << std::endl;
 	std::cout << "layer height: " << field_height << std::endl;
 	std::cout << "stride x: " << stride_x << std::endl;

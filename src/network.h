@@ -20,7 +20,8 @@ public:
 	std::vector<activation_function> activation_functions;			//the activation function to use for each layer
 	std::vector<layer_connectivity> layer_connectivities;			//is the layer convolutional or fully connected?
 	std::vector<bool> pools;										//should the layer be pooled at the end?
-	std::vector<int> layer_depth;									//how deep is each layer?
+	std::vector<int> layer_depth;									//how deep is each layer coming in?
+	std::vector<int> layer_depth_out;								//how deep is each layer going out?
 
 	int		*mini_batch_r,											//pointer to a segment of the training data
 			*test_data_r,											//pointer to test data

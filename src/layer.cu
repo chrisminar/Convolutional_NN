@@ -5,11 +5,28 @@
  */
 
 #include "layer.h"
+#include "init.h"
 
 void layer::initialise()
 {
-	//resize weights
+	//initialise weights
+	//resize
 	weights.resize(filter_size*filter_size*layer_depth); //todo need some sort of bias term
+	//randomize...
+	const int blocksize = 256;
+	int weight_size = filter_size*filter_size*layer_depth*layer_depth_out;
+	dim3 grid( int( (weight_size - 0.5)/blocksize ) + 1, 1);
+	dim3 block(blocksize, 1);
+	//setup seeds
+	curandState *devStates;
+	cudaMalloc (&devStates, weight_size*sizeof( curandState) );
+	kernels::setup_rand<<<grid,block>>>( devStates, unsigned(time(NULL)) );// init a different seed for every thread =/
+	//randomize weights
+	kernels::init_weights<<<grid,block>>>(weights, filter_size, layer_depth, layer_depth_out, state);
+	//free seeds
+	cudaFree(devStates);
+
+
 	//set output metadata
 	if (pool)
 	{
