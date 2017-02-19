@@ -9,27 +9,28 @@
 namespace kernels
 {
 __global__
-void convolute(int *input, int *output, double *weights, int field_width, int field_height,
+void convolute(int *input, int *temp, double *weights, int field_width, int field_height,
 		int stride_x, int stride_y, int zero_pad_x, int zero_pad_y, int filter_size, int batch_size, int layer_depth, int layer_depth_out)
 {
 	//todo currently assumes the same in x and y
 	//todo currently can't handle zero_pad
-	zero_pad_x = 0;
-	//if were outside of the minibatch range return
-	int number_of_filters_per_input = ((field_width - filter_size + 2*zero_pad_x)/stride_x + 1)^2;
-	if (threadIdx.x + blockDim.x + blockIdx.x >= number_of_filters_per_input * layer_depth * batch_size)
-		return;
+
 	//figure out where this kernel is
-	int total_filter_number = threadIdx.x + blockDim.x + blockIdx.x,
-		image_number = total_filter_number/(number_of_filters_per_input),
-		filter_number = total_filter_number%(number_of_filters_per_input),
-		filter_x = filter_number % field_width,
-		filter_y = filter_number / field_width;
+	int number_of_filters_per_width = ((field_width - filter_size + 2*zero_pad_x)/stride_x + 1),			//number of filters in each row of a lyer
+		number_of_filters_per_input = number_of_filters_per_width*number_of_filters_per_width,				//number of filters in one layer
+		total_filter_number = threadIdx.x + blockDim.x * blockIdx.x,										//filter number (no reset)
+		image_number = total_filter_number/(number_of_filters_per_input*layer_depth),						//image number were on
+		filter_number = total_filter_number%(number_of_filters_per_input),									//filter number in the layer
+		filter_x = filter_number % field_width,																//filter number of column in layer
+		filter_y = filter_number / field_width;																//filter number of row in layer
+	//if were outside of the minibatch range return
+	if (total_filter_number >= number_of_filters_per_input * layer_depth * batch_size)
+		return;
 
 	//setup dot product
 	//this if statement causes crazy divergence
 	double sum = 0;
-	int center_pixel = 0;
+	int center_pixel_index = 0;
 	int weight_index = 0;
 	//the weight is going to be filter_size x filter_size x layer depth_in. There is one weight for each output layer
 	//loop over output depth
@@ -39,10 +40,10 @@ void convolute(int *input, int *output, double *weights, int field_width, int fi
 		for (int k=0; k<layer_depth; k++)
 		{
 			//loop over filter_x
-			for (int i=-filter_width/2; i<filter_width/2; i++)
+			for (int i=-filter_size/2; i<filter_size/2; i++)
 			{
 				//loop over filter_y
-				for (int j=-filter_width/2; j<filter_height/2; j++)
+				for (int j=-filter_size/2; j<filter_size/2; j++)
 				{
 					//check if we are at a boundary
 					if (filter_x + i < 0)
@@ -66,36 +67,35 @@ void convolute(int *input, int *output, double *weights, int field_width, int fi
 						//otherwise we have no zero-padding required, dot product away
 						//	pixels from...                      past images							        past layers              past rows         past columns
 						center_pixel_index = image_number*field_width*field_height*layer_depth +  field_width*field_height*k + field_width*filter_y + filter_x; //todo this only works if stride is one with approp zero-padding
-						weight_index = filter_width*filter_height*layer_depth*m +  k*filter_width*filter_height + filter_width*j + i;
-						sum += input[center_pixel_index + j*field_width + i] * weight[weight_index];
+						weight_index = filter_size*filter_size*layer_depth*m +  k*filter_size*filter_size + filter_size*j + i;
+						sum += input[center_pixel_index + j*field_width + i] * weights[weight_index];
 						//todo need to change inputs and outputs to be doubles
 						//todo need to make a temporary array for the output of this step
 					}//endif
 				}//endj
 			}//endi
 		}//endk
-		output[image_number*field_width*field_height*layer_depth_out + field_width*field_height*m + field_width * filter_y + filter_x] = sum;
-	}//endm
+		temp[image_number*field_width*field_height*layer_depth_out + field_width*field_height*m + field_width * filter_y + filter_x] = sum;
+	}//endm*/
 }
 
-
 __global__
-void sigmoid_activation(int *output)
+void sigmoid_activation(int *output, int field_width, int field_height, int layer_depth_out, int batch_size)
 {
 	int number_of_pixels_per_image = field_width*field_height*layer_depth_out;
-	if (threadIdx.x + blockDim.x + blockIdx.x >= number_of_pixels_per_image * batch_size)
+	if (threadIdx.x + blockDim.x * blockIdx.x >= number_of_pixels_per_image * batch_size)
 		return;
-	int i = threadIdx.x + blockDim.x + blockIdx.x;
-	output[i] =  1 / (1 + exp(-output[i]));
+	int i = threadIdx.x + blockDim.x * blockIdx.x;
+	output[i] =  1 / (1 + exp(float(-output[i]))); //todo get rid of float
 }
 
 __global__
-void pool_input(int *input, int *output)
+void pool_input(int *input, int *output, int field_width, int field_height, int layer_depth_out, int batch_size)
 {
 	int number_of_pixels_per_image = field_width*field_height*layer_depth_out/4;
-	if (threadIdx.x + blockDim.x + blockIdx.x >= number_of_pixels_per_image * batch_size)
+	if (threadIdx.x + blockDim.x * blockIdx.x >= number_of_pixels_per_image * batch_size)
 		return;
-	int		pool_index = threadIdx.x + blockDim.x + blockIdx.x,						//index for the pool output
+	int		pool_index = threadIdx.x + blockDim.x * blockIdx.x,						//index for the pool output
 			image_number = pool_index/number_of_pixels_per_image,					//what image are we at
 			layer_number = (pool_index%number_of_pixels_per_image)/(field_width*field_height/4),	//what layer are we at
 			layer_index = (pool_index%number_of_pixels_per_image)%(field_width*field_height/4),		//layer index from 0 to xx within each layer

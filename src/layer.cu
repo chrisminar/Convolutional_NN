@@ -5,28 +5,11 @@
  */
 
 #include "layer.h"
-#include "init.h"
+#include "kernels/init.h"
+#include "io.h"
 
 void layer::initialise()
 {
-	//initialise weights
-	//resize
-	weights.resize(filter_size*filter_size*layer_depth); //todo need some sort of bias term
-	//randomize...
-	const int blocksize = 256;
-	int weight_size = filter_size*filter_size*layer_depth*layer_depth_out;
-	dim3 grid( int( (weight_size - 0.5)/blocksize ) + 1, 1);
-	dim3 block(blocksize, 1);
-	//setup seeds
-	curandState *devStates;
-	cudaMalloc (&devStates, weight_size*sizeof( curandState) );
-	kernels::setup_rand<<<grid,block>>>( devStates, unsigned(time(NULL)) );// init a different seed for every thread =/
-	//randomize weights
-	kernels::init_weights<<<grid,block>>>(weights, filter_size, layer_depth, layer_depth_out, state);
-	//free seeds
-	cudaFree(devStates);
-
-
 	//set output metadata
 	if (pool)
 	{
@@ -38,9 +21,28 @@ void layer::initialise()
 		field_width_out = field_width;
 		field_height_out = field_height;
 	}
-	//resize layeroutput
-	layer_output.resize(field_width_out*field_height_out*layer_depth_out);
+	//resize layer output
+	layer_output.resize(field_width_out*field_height_out*layer_depth_out*batch_size);
 	layer_output_r = thrust::raw_pointer_cast( &(layer_output[0]) );
+	//resize temp
+	temp.resize(field_width * field_height * layer_depth_out * batch_size);
+	temp_r = thrust::raw_pointer_cast( (&temp[0]) );
+	//resize weights
+	weights.resize(filter_size*filter_size*layer_depth_out); //todo need some sort of bias term
+	weights_r = thrust::raw_pointer_cast ( &(weights[0]) );
+	//give weights gaussian distribution
+	const int blocksize = 256;
+	int weight_size = filter_size*filter_size*layer_depth*layer_depth_out;
+	dim3 grid( int( (weight_size - 0.5)/blocksize ) + 1, 1);
+	dim3 block(blocksize, 1);
+	//setup seeds
+	curandStateXORWOW *devStates;
+	cudaMalloc (&devStates, weight_size*sizeof( curandStateXORWOW) );
+	kernels::setup_rand<<<grid,block>>>( devStates, unsigned(time(NULL)) );// init a different seed for every thread =/
+	//randomize weights
+	kernels::init_weights<<<grid,block>>>(weights_r, filter_size, layer_depth, layer_depth_out, devStates);
+	//free seeds
+	cudaFree(devStates);
 }
 
 // constructors
@@ -55,8 +57,6 @@ layer::layer(int *layer_input_, layer *previous_layer_)
 	filter_size = previous_layer->filter_size;
 	layer_depth = previous_layer->layer_depth;
 	actv_fn = SIGMOID;
-
-	initialise();
 }
 
 layer::layer(int *layer_input_, int field_size, int stride, int zero_pad, int filter_size_, int layer_depth_)
@@ -71,8 +71,6 @@ layer::layer(int *layer_input_, int field_size, int stride, int zero_pad, int fi
 	filter_size = filter_size_;
 	layer_depth = layer_depth_;
 	actv_fn = SIGMOID;
-
-	initialise();
 }
 
 layer::layer(int *layer_input_, int field_width_, int field_height_, int stride_x_, int stride_y_, int zero_pad_x_,
@@ -88,8 +86,6 @@ layer::layer(int *layer_input_, int field_width_, int field_height_, int stride_
 	filter_size = filter_size_;
 	layer_depth = layer_depth_;
 	actv_fn = SIGMOID;
-
-	initialise();
 }
 
 void layer::set_pool(bool pool_)

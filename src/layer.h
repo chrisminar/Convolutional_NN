@@ -7,7 +7,6 @@
 #pragma once
 #include <thrust/device_vector.h>
 #include "types.h"
-#include "io.h"
 
 class layer
 {
@@ -16,12 +15,15 @@ public:
 	// Class Members
 	//
 	// Layer arrays
-	int *layer_input;
 	thrust::device_vector<int> layer_output;
-	thrust::device_vector<int> weights;
+	thrust::device_vector<int> temp;
+	thrust::device_vector<double> weights;
 
 	// layer array raw pointers
-	int* layer_output_r;
+	int *layer_input,
+		*layer_output_r,
+		*temp_r;
+	double *weights_r;
 
 	// Layer metadata
 	activation_function actv_fn;
@@ -43,7 +45,8 @@ public:
 		filter_size,
 		layer_depth,
 		layer_depth_out,
-		layer_position;
+		layer_position,
+		batch_size;
 	double learning_rate;
 
 	//array pointers

@@ -2,7 +2,7 @@
   batch_size: 50
   field_size: [32, 32]
   stride: [1, 1]
-  zero_pad: [0, 0]
+  zero_pad: [1, 1]
   filter_size: 3
   learning_rate: 0.2
   depth_in: [3, 16, 32, 32]

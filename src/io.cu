@@ -9,12 +9,13 @@
  * \my blog: http://eric-yuan.me/
  */
 
+#include "io.h"
 #include <fstream>
 #include <iostream>
-#include "io.h"
 #include <vector>
-#include <thrust/host_vector.h>
 #include <yaml-cpp/yaml.h>
+#include <thrust/host_vector.h>
+#include <thrust/device_ptr.h>
 
 namespace io
 {
@@ -54,7 +55,7 @@ void read_batch(std::string filename, thrust::host_vector<int> &images, thrust::
 						file.read(&pixel_buffer, 1);
 						//				   previous images		  previous color channels   prev rows	prev columns
 						pixel_index = (i * n_rows*n_cols*3 + 1) + (ch * n_rows * n_cols) + (r*n_rows) + c;
-						images[pixel_index] = int(pixel_buffer);
+						images[pixel_index] = int(pixel_buffer) + 128; //conver to unsigned
 					}
 				}
 			}
@@ -174,6 +175,81 @@ void print_gpu_data()
     }
 }
 
+void print_input(int number_of_images, int image_start, layer &layerin, image_DB &IDB)
+{
+	int pos = 0,
+		fw = layerin.field_width,
+		fh = layerin.field_height,
+		ld = layerin.layer_depth;
+	//setup fstream
+	std::ofstream myfile;
+	std::string folder = "/scratch/src/convNet/convNet";
+	std::stringstream out;
+	std::stringstream convert; convert << "/output/" <<layerin.layer_position<< ":"<<image_start<<"-"<<image_start+number_of_images<<".csv";
+	std::string folder_name = convert.str();
+	out<<folder<<folder_name;
+	myfile.open(out.str().c_str());
+	for (int m=0; m < number_of_images; m++) //loop though images
+	{
+		myfile << "\nImage number: "<<m<<std::endl;
+		for (int k=0; k<ld; k++) //loop through layers
+		{
+			myfile << "Layer number: "<<k<<std::endl;
+			for (int j=0; j< fh; j++) //loop through rows
+			{
+				for (int i=0; i<fw; i++) //loop though cols
+				{
+					pos = m*fw*fh*ld + k*fw*fh + fw*j + i;
+					myfile << IDB.batch_1[pos] << ", ";
+				}
+				myfile << "\n";
+			}
+		}
+	}
+}
+
+void print_temp(int number_of_images, int image_start, layer &layerin)
+{
+	int pos = 0,
+		fw = layerin.field_width,
+		fh = layerin.field_height,
+		ld = layerin.layer_depth_out;
+
+	//setup fstream
+	std::ofstream myfile;
+	std::string folder = "/scratch/src/convNet/convNet";
+	std::stringstream out;
+	std::stringstream convert; convert << "/output/" <<layerin.layer_position<< ":"<<image_start<<"-"<<image_start+number_of_images<<".csv";
+	std::string folder_name = convert.str();
+	out<<folder<<folder_name;
+	myfile.open(out.str().c_str());
+	for (int m=0; m < number_of_images; m++) //loop though images
+	{
+		myfile << "\nImage number: "<<m<<std::endl;
+		for (int k=0; k<ld; k++) //loop through layers
+		{
+			myfile << "Layer number: "<<k<<std::endl;
+			for (int j=0; j< fh; j++) //loop through rows
+			{
+				for (int i=0; i<fw; i++) //loop though cols
+				{
+					pos = m*fw*fh*ld + k*fw*fh + fw*j + i;
+					myfile << layerin.temp[pos] << ", ";
+				}
+				myfile << "\n";
+			}
+		}
+	}
+}
+
+void printDeviceMemoryUsage()
+{
+	size_t _free, _total;
+	cudaMemGetInfo(&_free, &_total);
+	std::cout << '\n' << "Initialisation complete\nFlux capacitors charged" << ": Memory Usage " << (_total-_free)/(1024.0*1024*1024) \
+	          << " / " << _total/(1024.0*1024*1024) << " GB" << '\n' << std::endl;
+}
+
 std::string layer_type_to_string(layer_type typ)
 {
 	if (typ == INPUT)
@@ -246,10 +322,3 @@ bool string_to_bool(std::string s)
 		return false;
 }
 }//end namespace io
-
-
-/*
-
- *
- */
-

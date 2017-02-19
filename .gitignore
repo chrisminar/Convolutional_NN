@@ -12,6 +12,7 @@ build
 bin
 debug
 cifar-10-batches-bin
+output
 
 ## CUDA ignore filetypes
 *.i

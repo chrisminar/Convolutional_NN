@@ -5,7 +5,6 @@
  */
 
 #pragma once
-#include "io.h"
 #include "layer.h"
 #include "image_DB.h"
 #include <thrust/device_vector.h>
