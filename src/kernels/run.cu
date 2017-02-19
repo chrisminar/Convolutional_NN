@@ -9,11 +9,11 @@
 namespace kernels
 {
 __global__
-void convolute(int *input, int *temp, double *weights, int field_width, int field_height,
+void convolute(double *input, double *temp, double *weights, int field_width, int field_height,
 		int stride_x, int stride_y, int zero_pad_x, int zero_pad_y, int filter_size, int batch_size, int layer_depth, int layer_depth_out)
 {
-	//todo currently assumes the same in x and y
-	//todo currently can't handle zero_pad
+	//todo currently some parts assume the x-y symmetry
+	//todo currently handles zero-pad oddly
 
 	//figure out where this kernel is
 	int number_of_filters_per_width = ((field_width - filter_size + 2*zero_pad_x)/stride_x + 1),			//number of filters in each row of a lyer
@@ -69,8 +69,6 @@ void convolute(int *input, int *temp, double *weights, int field_width, int fiel
 						center_pixel_index = image_number*field_width*field_height*layer_depth +  field_width*field_height*k + field_width*filter_y + filter_x; //todo this only works if stride is one with approp zero-padding
 						weight_index = filter_size*filter_size*layer_depth*m +  k*filter_size*filter_size + filter_size*j + i;
 						sum += input[center_pixel_index + j*field_width + i] * weights[weight_index];
-						//todo need to change inputs and outputs to be doubles
-						//todo need to make a temporary array for the output of this step
 					}//endif
 				}//endj
 			}//endi
@@ -80,41 +78,39 @@ void convolute(int *input, int *temp, double *weights, int field_width, int fiel
 }
 
 __global__
-void sigmoid_activation(int *output, int field_width, int field_height, int layer_depth_out, int batch_size)
+void sigmoid_activation(double *temp, int field_width, int field_height, int layer_depth_out, int batch_size)
 {
 	int number_of_pixels_per_image = field_width*field_height*layer_depth_out;
 	if (threadIdx.x + blockDim.x * blockIdx.x >= number_of_pixels_per_image * batch_size)
 		return;
 	int i = threadIdx.x + blockDim.x * blockIdx.x;
-	output[i] =  1 / (1 + exp(float(-output[i]))); //todo get rid of float
+	temp[i] =  1 / (1 + exp(-temp[i]));
 }
 
 __global__
-void pool_input(int *input, int *output, int field_width, int field_height, int layer_depth_out, int batch_size)
+void pool_input(double *temp, double *output, int field_width, int field_height, int layer_depth_out, int batch_size)
 {
-	int number_of_pixels_per_image = field_width*field_height*layer_depth_out/4;
+	int number_of_pixels_per_image = field_width*field_height*layer_depth_out;
 	if (threadIdx.x + blockDim.x * blockIdx.x >= number_of_pixels_per_image * batch_size)
 		return;
 	int		pool_index = threadIdx.x + blockDim.x * blockIdx.x,						//index for the pool output
 			image_number = pool_index/number_of_pixels_per_image,					//what image are we at
-			layer_number = (pool_index%number_of_pixels_per_image)/(field_width*field_height/4),	//what layer are we at
-			layer_index = (pool_index%number_of_pixels_per_image)%(field_width*field_height/4),		//layer index from 0 to xx within each layer
-			pool_x = layer_index % (field_width/4),									//the column we are on
-			pool_y = layer_index / (field_width/4),									//the row we are on
-			input_index = image_number*field_width*field_height*layer_depth_out +	//pixels from previous images...
-							layer_number*field_width*field_height +					//from previous layers
-							pool_y*field_width*2 +									//rows
+			layer_number = (pool_index%number_of_pixels_per_image)/(field_width*field_height),	//what layer are we at
+			layer_index = (pool_index%number_of_pixels_per_image)%(field_width*field_height),		//layer index from 0 to xx within each layer
+			pool_x = layer_index % (field_width),									//the column we are on
+			pool_y = layer_index / (field_width),									//the row we are on
+			temp_index = image_number*field_width*field_height*layer_depth_out*4 +	//pixels from previous images...
+							layer_number*field_width*field_height*4 +					//from previous layers
+							pool_y*field_width*4 +									//rows
 							pool_x*2;												//columns
 	//perform pooling opertaion
-	double max = input[input_index];
-	if (input[input_index+1] > max)
-		max = input[input_index+1];
-	if (input[input_index + field_width] > max)
-		max = input[input_index + field_width];
-	if (input[input_index + field_width + 1] > max)
-		max = input[input_index + field_width + 1];
+	double max = temp[temp_index];
+	if (temp[temp_index+1] > max)
+		max = temp[temp_index+1];
+	if (temp[temp_index + field_width*2] > max)
+		max = temp[temp_index + field_width*2];
+	if (temp[temp_index + field_width*2 + 1] > max)
+		max = temp[temp_index + field_width*2 + 1];
 	output[pool_index] = max;
-
-
 }
 }

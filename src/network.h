@@ -22,10 +22,11 @@ public:
 	std::vector<int> layer_depth;									//how deep is each layer coming in?
 	std::vector<int> layer_depth_out;								//how deep is each layer going out?
 
-	int		*mini_batch_r,											//pointer to a segment of the training data
-			*test_data_r,											//pointer to test data
-			*mini_batch_label_r,
-			*test_data_label_r;
+	double	*mini_batch_r,											//pointer to a segment of the training data
+			*test_data_r;											//pointer to test data
+
+	int *mini_batch_label_r,
+		*test_data_label_r;
 
 	int	field_width,												//layer width
 		field_height,												//layer height

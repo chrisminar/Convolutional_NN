@@ -25,7 +25,8 @@ const int number_of_images = 10000;
 const int n_rows = 32;
 const int n_cols = 32;
 
-void read_batch(std::string filename, thrust::host_vector<int> &images, thrust::host_vector<int> &labels)
+//read data from a cifar-10 file
+void read_batch(std::string filename, thrust::host_vector<double> &images, thrust::host_vector<int> &labels)
 {
 	//open batch file
     std::ifstream file(filename.c_str(), std::ios::binary);
@@ -55,7 +56,7 @@ void read_batch(std::string filename, thrust::host_vector<int> &images, thrust::
 						file.read(&pixel_buffer, 1);
 						//				   previous images		  previous color channels   prev rows	prev columns
 						pixel_index = (i * n_rows*n_cols*3 + 1) + (ch * n_rows * n_cols) + (r*n_rows) + c;
-						images[pixel_index] = int(pixel_buffer) + 128; //conver to unsigned
+						images[pixel_index] = double(int(pixel_buffer))/128;
 					}
 				}
 			}
@@ -68,6 +69,7 @@ void read_batch(std::string filename, thrust::host_vector<int> &images, thrust::
     	std::cout<<"Failed to open file:" << filename.c_str() << std::endl;
 }
 
+//read all the cifar-10 files
 void read_CIFAR10(image_DB &idb)
 {
     std::string filename;
@@ -83,6 +85,7 @@ void read_CIFAR10(image_DB &idb)
     read_batch(filename, idb.training, idb.training_labels);
 }
 
+//handle the yaml read
 void operator >> (const YAML::Node & node, network &N)
 {
 	node["batch_size"] >> N.batch_size;
@@ -131,6 +134,7 @@ void operator >> (const YAML::Node & node, network &N)
 	}
 }
 
+//parse the network
 void parse_network_file(std::string fname, network &N)
 {
 	std::cout<<"Parsing network file " << fname << std::endl;
@@ -144,6 +148,7 @@ void parse_network_file(std::string fname, network &N)
 	}
 }
 
+//print info about the gpu
 void print_gpu_data()
 {
     const int kb = 1024;
@@ -175,6 +180,7 @@ void print_gpu_data()
     }
 }
 
+//print the input to a layer to file
 void print_input(int number_of_images, int image_start, layer &layerin, image_DB &IDB)
 {
 	int pos = 0,
@@ -208,7 +214,8 @@ void print_input(int number_of_images, int image_start, layer &layerin, image_DB
 	}
 }
 
-void print_temp(int number_of_images, int image_start, layer &layerin)
+//print the temp of a layer to file
+void print_temp(int number_of_images, int image_start, layer &layerin, std::string s)
 {
 	int pos = 0,
 		fw = layerin.field_width,
@@ -219,7 +226,7 @@ void print_temp(int number_of_images, int image_start, layer &layerin)
 	std::ofstream myfile;
 	std::string folder = "/scratch/src/convNet/convNet";
 	std::stringstream out;
-	std::stringstream convert; convert << "/output/" <<layerin.layer_position<< ":"<<image_start<<"-"<<image_start+number_of_images<<".csv";
+	std::stringstream convert; convert << "/output/temp_" <<s<<layerin.layer_position<< ":"<<image_start<<"-"<<image_start+number_of_images<<".csv";
 	std::string folder_name = convert.str();
 	out<<folder<<folder_name;
 	myfile.open(out.str().c_str());
@@ -242,6 +249,77 @@ void print_temp(int number_of_images, int image_start, layer &layerin)
 	}
 }
 
+//print the layer weights to a file
+void print_weights(layer &layerin)
+{
+	int pos = 0,
+		ldo = layerin.layer_depth_out,
+		ld = layerin.layer_depth,
+		fs = layerin.filter_size;
+
+	//setup fstream
+	std::ofstream myfile;
+	std::string folder = "/scratch/src/convNet/convNet";
+	std::stringstream out;
+	std::stringstream convert; convert << "/output/weights_" <<layerin.layer_position<< ".csv";
+	std::string folder_name = convert.str();
+	out<<folder<<folder_name;
+	myfile.open(out.str().c_str());
+	for (int m=0; m < ldo; m++) //loop though layer depth out
+	{
+		myfile << "\nLayer out number: "<<m<<std::endl;
+		for (int k=0; k<ld; k++) //loop through layer depth in
+		{
+			myfile << "Layer in number: "<<k<<std::endl;
+			for (int j=0; j< fs; j++) //loop through rows
+			{
+				for (int i=0; i<fs; i++) //loop though cols
+				{
+					pos = m*fs*fs*ld + k*fs*fs + fs*j + i;
+					myfile << layerin.weights[pos] << ", ";
+				}
+				myfile << "\n";
+			}
+		}
+	}
+}
+
+//print the output to a file
+void print_output(int number_of_images, int image_start, layer &layerin, std::string s)
+{
+	int pos = 0,
+		fw = layerin.field_width_out,
+		fh = layerin.field_height_out,
+		ld = layerin.layer_depth_out;
+
+	//setup fstream
+	std::ofstream myfile;
+	std::string folder = "/scratch/src/convNet/convNet";
+	std::stringstream out;
+	std::stringstream convert; convert << "/output/output_" <<s<<layerin.layer_position<< ":"<<image_start<<"-"<<image_start+number_of_images<<".csv";
+	std::string folder_name = convert.str();
+	out<<folder<<folder_name;
+	myfile.open(out.str().c_str());
+	for (int m=0; m < number_of_images; m++) //loop though images
+	{
+		myfile << "\nImage number: "<<m<<std::endl;
+		for (int k=0; k<ld; k++) //loop through layers
+		{
+			myfile << "Layer number: "<<k<<std::endl;
+			for (int j=0; j< fh; j++) //loop through rows
+			{
+				for (int i=0; i<fw; i++) //loop though cols
+				{
+					pos = m*fw*fh*ld + k*fw*fh + fw*j + i;
+					myfile << layerin.layer_output[pos] << ", ";
+				}
+				myfile << "\n";
+			}
+		}
+	}
+}
+
+//print the device memory usage
 void printDeviceMemoryUsage()
 {
 	size_t _free, _total;

@@ -18,8 +18,6 @@ network::network(image_DB *idb)
 //run the network
 void network::run()
 {
-	//todo change temp to a double and see if the dot product is doing stuff
-	//todo need to correctly resize the output data (might need to recast?) (might need to be done much earlier)
 	//todo whats going on with weight deltas and deltas?
 	//todo check if inputs to convolute work, combination of zeropad
 	const int blocksize = 256;
@@ -32,13 +30,27 @@ void network::run()
 		dim3 conv_b(blocksize, 1);
 		layers[i].temp_r = thrust::raw_pointer_cast( &(layers[i].temp[0]) );
 		kernels::convolute<<<conv_g,conv_b>>>(layers[i].layer_input, layers[i].temp_r, layers[i].weights_r, layers[i].field_width,
-							layers[i].field_height, layers[i].stride_x, layers[i].stride_y, layers[i].zero_pad_x,
-							layers[i].zero_pad_y, layers[i].filter_size, batch_size, layers[i].layer_depth, layers[i].layer_depth_out);
-		std::cout<<"test temp " << layers[i].temp[20] << std::endl;
+											layers[i].field_height, layers[i].stride_x, layers[i].stride_y, layers[i].zero_pad_x,
+											layers[i].zero_pad_y, layers[i].filter_size, batch_size, layers[i].layer_depth,
+											layers[i].layer_depth_out);
+		io::print_temp(1,0, layers[i], "before");
 		//activation funciton on each layer
+		dim3 actv_g( int( (layers[i].field_width*layers[i].field_height*layers[i].layer_depth_out*batch_size)/blocksize ) +1, 1);
+		dim3 actv_b(blocksize,1);
+		kernels::sigmoid_activation<<<actv_g, actv_b>>>(layers[i].temp_r, layers[i].field_width, layers[i].field_height,
+														layers[i].layer_depth_out, layers[i].batch_size);
+		std::cout<<"test temp out: " << layers[i].temp[5] <<std::endl;
 		//pool layer
+		dim3 pool_g ( int( (layers[i].field_width_out*layers[i].field_height_out*layers[i].layer_depth_out*batch_size)/blocksize ) +1, 1);
+		dim3 pool_b (blocksize,1);
+		layers[i].layer_output_r = thrust::raw_pointer_cast(&layers[i].layer_output[0]);
+		kernels::pool_input<<<pool_g,pool_b>>>(layers[i].temp_r, layers[i].layer_output_r, layers[i].field_width_out,
+										layers[i].field_height_out,	layers[i].layer_depth_out, batch_size);
+		std::cout<<"test layer out: " << layers[i].layer_output[5] <<std::endl;
 	}
-	io::print_temp(1,0, layers[i]);
+	io::print_temp(1,0, layers[i], "after");
+	io::print_weights(layers[i]);
+	io::print_output(2,0,layers[i],"");
 }
 
 void network::initialise_layers()
@@ -53,8 +65,6 @@ void network::initialise_layers()
 	test_data_r = thrust::raw_pointer_cast( &(IDB->training_D[0]) );
 	mini_batch_label_r = thrust::raw_pointer_cast( &(IDB->batch_1_labels_D[0]) );
 	test_data_label_r = thrust::raw_pointer_cast( &(IDB->training_labels_D[0]) );
-
-	//todo input/minibatch need to beinitilised and resized and whatnot before layers are initialised
 	//make layers
 	for (int i=0; i<activation_functions.size(); i++)
 	{

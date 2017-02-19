@@ -15,12 +15,14 @@
 namespace io
 {
 
-void read_batch(std::string filename, thrust::host_vector<int> &vec, thrust::host_vector<int> &label);
+void read_batch(std::string filename, thrust::host_vector<double> &vec, thrust::host_vector<int> &label);
 void read_CIFAR10(image_DB &idb);
 void print_gpu_data();
 void parse_network_file(std::string fname, network &N);
 void print_input(int number_of_images, int image_start, layer &layerin, image_DB &IDB);
-void print_temp(int number_of_images, int image_start, layer &layerin);
+void print_temp(int number_of_images, int image_start, layer &layerin, std::string s);
+void print_weights(layer &layerin);
+void print_output(int number_of_images, int image_start, layer &layerin, std::string s);
 void printDeviceMemoryUsage();
 
 std::string layer_type_to_string(layer_type typ);

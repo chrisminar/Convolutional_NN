@@ -11,7 +11,7 @@
 class image_DB
 {
 public:
-	thrust::host_vector<int>	batch_1,
+	thrust::host_vector<double>	batch_1,
 								batch_2,
 								batch_3,
 								batch_4,
@@ -25,12 +25,12 @@ public:
 								batch_5_labels,
 								training_labels;
 
-	thrust::device_vector<int>	batch_1_D,
-								batch_2_D,
-								batch_3_D,
-								batch_4_D,
-								batch_5_D,
-								training_D;
+	thrust::device_vector<double>	batch_1_D,
+									batch_2_D,
+									batch_3_D,
+									batch_4_D,
+									batch_5_D,
+									training_D;
 
 	thrust::device_vector<int>	batch_1_labels_D,
 								batch_2_labels_D,

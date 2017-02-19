@@ -5,8 +5,8 @@
  */
 
 #include "layer.h"
-#include "kernels/init.h"
 #include "io.h"
+#include <random>
 
 void layer::initialise()
 {
@@ -23,30 +23,29 @@ void layer::initialise()
 	}
 	//resize layer output
 	layer_output.resize(field_width_out*field_height_out*layer_depth_out*batch_size);
-	layer_output_r = thrust::raw_pointer_cast( &(layer_output[0]) );
+	layer_output_r = thrust::raw_pointer_cast( &(layer_output[0]) );//this cast doesn't seem to work for some reason
 	//resize temp
 	temp.resize(field_width * field_height * layer_depth_out * batch_size);
-	temp_r = thrust::raw_pointer_cast( (&temp[0]) );
-	//resize weights
-	weights.resize(filter_size*filter_size*layer_depth_out); //todo need some sort of bias term
-	weights_r = thrust::raw_pointer_cast ( &(weights[0]) );
+	temp_r = thrust::raw_pointer_cast( &(temp[0]) );
 	//give weights gaussian distribution
-	const int blocksize = 256;
-	int weight_size = filter_size*filter_size*layer_depth*layer_depth_out;
-	dim3 grid( int( (weight_size - 0.5)/blocksize ) + 1, 1);
-	dim3 block(blocksize, 1);
-	//setup seeds
-	curandStateXORWOW *devStates;
-	cudaMalloc (&devStates, weight_size*sizeof( curandStateXORWOW) );
-	kernels::setup_rand<<<grid,block>>>( devStates, unsigned(time(NULL)) );// init a different seed for every thread =/
-	//randomize weights
-	kernels::init_weights<<<grid,block>>>(weights_r, filter_size, layer_depth, layer_depth_out, devStates);
-	//free seeds
-	cudaFree(devStates);
+	thrust::host_vector<double> H;
+	H.resize(filter_size*filter_size*layer_depth*layer_depth_out); //todo need some sort of bias term
+	std::default_random_engine generator;
+	std::normal_distribution<double> distribution(0.0, 1.0);
+	double num = 0.0;
+	int n = filter_size*filter_size*layer_depth;
+	for (int i=0; i < H.size(); i++)
+	{
+		num = distribution(generator);
+		H[i] = num/sqrt(n);
+	}
+
+	weights = H;
+	weights_r = thrust::raw_pointer_cast ( &(weights[0]) );
 }
 
 // constructors
-layer::layer(int *layer_input_, layer *previous_layer_)
+layer::layer(double *layer_input_, layer *previous_layer_)
 {
 	layer_input = layer_input_;
 	previous_layer = previous_layer_;
@@ -59,7 +58,7 @@ layer::layer(int *layer_input_, layer *previous_layer_)
 	actv_fn = SIGMOID;
 }
 
-layer::layer(int *layer_input_, int field_size, int stride, int zero_pad, int filter_size_, int layer_depth_)
+layer::layer(double *layer_input_, int field_size, int stride, int zero_pad, int filter_size_, int layer_depth_)
 {
 	layer_input = layer_input_;
 	field_width = field_size;
@@ -73,7 +72,7 @@ layer::layer(int *layer_input_, int field_size, int stride, int zero_pad, int fi
 	actv_fn = SIGMOID;
 }
 
-layer::layer(int *layer_input_, int field_width_, int field_height_, int stride_x_, int stride_y_, int zero_pad_x_,
+layer::layer(double *layer_input_, int field_width_, int field_height_, int stride_x_, int stride_y_, int zero_pad_x_,
 		int zero_pad_y_, int filter_size_, int layer_depth_)
 {
 	layer_input = layer_input_;

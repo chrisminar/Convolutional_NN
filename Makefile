@@ -9,7 +9,8 @@ CC = /usr/local/cuda-7.5/bin/nvcc $(OSXOPTS)
 #-g nvcc debug  makes execution take 20x longer
 #-lineinfo nvcc debug
 #-Xcompiler -Q passes something to gcc c++ compiler
-CCFLAGS = -arch=compute_20 -O3# -lineinfo
+#-std=c++11 enables new cpp stuff, used for the random distribution
+CCFLAGS = -arch=compute_20 -O3 -std=c++11# -lineinfo
 
 # variables
 RM = rm

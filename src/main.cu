@@ -27,6 +27,8 @@ int main()
 }
 
 //todo make print info dump to a file
-//todo figure out biases
-//todo need to test each kernel and make a testing platform
-//specifically need to test each of the indexes
+
+//todo biases
+//todo fully connected layer
+//todo soft sum
+//todo backprop
