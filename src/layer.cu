@@ -21,27 +21,63 @@ void layer::initialise()
 		field_width_out = field_width;
 		field_height_out = field_height;
 	}
+	if (lyr_typ == OUTPUT)
+	{
+		field_width_out = 1;
+		field_height_out = 1;
+	}
+
 	//resize layer output
 	layer_output.resize(field_width_out*field_height_out*layer_depth_out*batch_size);
 	layer_output_r = thrust::raw_pointer_cast( &(layer_output[0]) );//this cast doesn't seem to work for some reason
+
 	//resize temp
-	temp.resize(field_width * field_height * layer_depth_out * batch_size);
+	if (lyr_typ != OUTPUT)
+		temp.resize(field_width * field_height * layer_depth_out * batch_size);
+	else
+		temp.resize(field_width_out*field_height_out*layer_depth_out*batch_size);
 	temp_r = thrust::raw_pointer_cast( &(temp[0]) );
-	//give weights gaussian distribution
-	thrust::host_vector<double> H;
-	H.resize(filter_size*filter_size*layer_depth*layer_depth_out); //todo need some sort of bias term
-	std::default_random_engine generator;
+
+	//give weights and bias gaussian distribution
+	thrust::host_vector<double> W;
+	thrust::host_vector<double> B;
+	std::default_random_engine generator(std::random_device{}());
 	std::normal_distribution<double> distribution(0.0, 1.0);
 	double num = 0.0;
-	int n = filter_size*filter_size*layer_depth;
-	for (int i=0; i < H.size(); i++)
+	int n = 0;
+	if (lyr_typ != OUTPUT)
+	{
+		W.resize(filter_size*filter_size*layer_depth*layer_depth_out);
+		n = filter_size*filter_size*layer_depth;
+		for (int i=0; i < W.size(); i++)
+		{
+			if (i==0)
+				std::cout << num << std::endl;
+			W[i] = abs(num/n);
+		}
+
+	}
+	else
+	{
+		W.resize(field_width*field_height*layer_depth*layer_depth_out);
+		n = field_width*field_height*layer_depth;
+		for (int i=0; i<W.size(); i++)
+		{
+			num = distribution(generator);
+			W[i] = abs(num/n);
+		}
+	}
+	B.resize(layer_depth_out);
+	for (int i=0; i<B.size(); i++)
 	{
 		num = distribution(generator);
-		H[i] = num/sqrt(n);
+		B[i] = abs(num/layer_depth_out);
 	}
 
-	weights = H;
+	weights = W;
 	weights_r = thrust::raw_pointer_cast ( &(weights[0]) );
+	bias = B;
+	bias_r = thrust::raw_pointer_cast ( &(bias[0]) );
 }
 
 // constructors
@@ -87,40 +123,6 @@ layer::layer(double *layer_input_, int field_width_, int field_height_, int stri
 	actv_fn = SIGMOID;
 }
 
-void layer::set_pool(bool pool_)
-{
-	pool = pool_;
-}
-
-void layer::set_next_layer(layer *next_layer_)
-{
-	next_layer = next_layer_;
-}
-
-void layer::set_layer_position(int layer_position_)
-{
-	layer_position = layer_position_;
-}
-
-void layer::set_layer_type(layer_type layer_type_)
-{
-	lyr_typ = layer_type_;
-	if (layer_type_ == 0)
-		lyr_typ = INPUT;
-	else
-		lyr_typ = HIDDEN;
-}
-
-void layer::set_layer_connectivity(layer_connectivity lyr_conv_)
-{
-	lyr_conv = lyr_conv_;
-}
-
-void layer::set_activation_function(activation_function actv_fn_)
-{
-	actv_fn = actv_fn_;
-}
-
 void layer::print_metadata()
 {
 	std::cout << "\n\nPrinting information for layer " << layer_position << std::endl;
@@ -129,14 +131,13 @@ void layer::print_metadata()
 	std::cout << "Connectivity: " << io::layer_connectivity_to_string(lyr_conv) << std::endl;
 	std::cout << "Activation_Function: " << io::activation_function_to_string(actv_fn) << std::endl;
 	std::cout << "Pool layer: " << pool << std::endl;
-	std::cout << "layer width: " << field_width << std::endl;
-	std::cout << "layer height: " << field_height << std::endl;
+	std::cout << "layer width: " << field_width << "-" << field_width_out <<std::endl;
+	std::cout << "layer height: " << field_height << "-" << field_height_out << std::endl;
 	std::cout << "stride x: " << stride_x << std::endl;
 	std::cout << "stride y: " << stride_y << std::endl;
 	std::cout << "zero pad x: " << zero_pad_x << std::endl;
 	std::cout << "zero pad y: " << zero_pad_y << std::endl;
 	std::cout << "filter size: " << filter_size << std::endl;
-	std::cout << "layer depth: " << layer_depth<< std::endl;
-	std::cout << "layer_depth out: " << layer_depth_out << std::endl;
+	std::cout << "layer depth: " << layer_depth << "-" << layer_depth_out << std::endl;
 	std::cout << "learning_rate: " << learning_rate << std::endl;
 }

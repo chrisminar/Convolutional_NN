@@ -69,6 +69,13 @@ void read_batch(std::string filename, thrust::host_vector<double> &images, thrus
     	std::cout<<"Failed to open file:" << filename.c_str() << std::endl;
 }
 
+std::string CIFAR10_int_to_class(unsigned int value)
+{
+	std::vector<std::string> classes(10);
+	classes = {"airplane","automobile","bird","cat","deer","dog","frog","horse","ship","truck"};
+	return classes[value];
+}
+
 //read all the cifar-10 files
 void read_CIFAR10(image_DB &idb)
 {
@@ -218,9 +225,22 @@ void print_input(int number_of_images, int image_start, layer &layerin, image_DB
 void print_temp(int number_of_images, int image_start, layer &layerin, std::string s)
 {
 	int pos = 0,
-		fw = layerin.field_width,
-		fh = layerin.field_height,
+		fw,
+		fh,
+		ld;
+	if (layerin.lyr_conv == FULLY_CONNECTED)
+	{
+		fw = layerin.field_width_out;
+		fh = layerin.field_height_out;
 		ld = layerin.layer_depth_out;
+	}
+	else
+	{
+		fw = layerin.field_width;
+		fh = layerin.field_height;
+		ld = layerin.layer_depth_out;
+	}
+
 
 	//setup fstream
 	std::ofstream myfile;
@@ -233,17 +253,21 @@ void print_temp(int number_of_images, int image_start, layer &layerin, std::stri
 	for (int m=0; m < number_of_images; m++) //loop though images
 	{
 		myfile << "\nImage number: "<<m<<std::endl;
+		//std::cout << "\nImage number: "<<m<<std::endl;
 		for (int k=0; k<ld; k++) //loop through layers
 		{
 			myfile << "Layer number: "<<k<<std::endl;
+			//std::cout << "Layer number: "<<k<<std::endl;
 			for (int j=0; j< fh; j++) //loop through rows
 			{
 				for (int i=0; i<fw; i++) //loop though cols
 				{
 					pos = m*fw*fh*ld + k*fw*fh + fw*j + i;
 					myfile << layerin.temp[pos] << ", ";
+					//std::cout << pos << ", ";
 				}
 				myfile << "\n";
+				//std::cout << "\n";
 			}
 		}
 	}
@@ -255,7 +279,15 @@ void print_weights(layer &layerin)
 	int pos = 0,
 		ldo = layerin.layer_depth_out,
 		ld = layerin.layer_depth,
+		fs;
+	if (layerin.lyr_conv == FULLY_CONNECTED)
+	{
+		fs = layerin.field_width;
+	}
+	else
+	{
 		fs = layerin.filter_size;
+	}
 
 	//setup fstream
 	std::ofstream myfile;

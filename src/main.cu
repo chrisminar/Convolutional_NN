@@ -27,8 +27,7 @@ int main()
 }
 
 //todo make print info dump to a file
-
-//todo biases
-//todo fully connected layer
-//todo soft sum
 //todo backprop
+
+//general questions:
+//should weights be positive?

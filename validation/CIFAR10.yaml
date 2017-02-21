@@ -6,7 +6,7 @@
   filter_size: 3
   learning_rate: 0.2
   depth_in: [3, 16, 32, 32]
-  depth_out: [16, 32, 32, 32]
+  depth_out: [16, 32, 32, 10]
   activation_functions: [SIGMOID, SIGMOID, SIGMOID, SIGMOID]
   pools: [true, true, true, false]
   layer_connectivities: [CONVOLUTIONAL, CONVOLUTIONAL, CONVOLUTIONAL, FULLY_CONNECTED]

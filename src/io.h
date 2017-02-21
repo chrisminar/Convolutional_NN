@@ -16,6 +16,7 @@ namespace io
 {
 
 void read_batch(std::string filename, thrust::host_vector<double> &vec, thrust::host_vector<int> &label);
+std::string CIFAR10_int_to_class(unsigned int value);
 void read_CIFAR10(image_DB &idb);
 void print_gpu_data();
 void parse_network_file(std::string fname, network &N);

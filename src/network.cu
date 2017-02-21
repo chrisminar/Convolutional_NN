@@ -8,6 +8,7 @@
 #include "network.h"
 #include <vector>
 #include "kernels/run.h"
+#include <thrust/extrema.h>
 
 //constructor
 network::network(image_DB *idb)
@@ -19,38 +20,78 @@ network::network(image_DB *idb)
 void network::run()
 {
 	//todo whats going on with weight deltas and deltas?
-	//todo check if inputs to convolute work, combination of zeropad
 	const int blocksize = 256;
 
-	//for (int i=0; i < layers.size(); i++)
-	int i = 0;
+	int i;
+	for (i=0; i < layers.size(); i++)
 	{
-		//convolute each layer
-		dim3 conv_g( int( (layers[i].field_width*layers[i].field_height*layers[i].layer_depth*batch_size - 0.5)/blocksize ) + 1, 1);
-		dim3 conv_b(blocksize, 1);
+		//resize stuff, not sure why this needs to be resized here but it breaks otherwise
+		if (i>0)
+		{
+			layers[i].layer_input = thrust::raw_pointer_cast(&layers[i-1].layer_output[0]);
+		}
 		layers[i].temp_r = thrust::raw_pointer_cast( &(layers[i].temp[0]) );
-		kernels::convolute<<<conv_g,conv_b>>>(layers[i].layer_input, layers[i].temp_r, layers[i].weights_r, layers[i].field_width,
-											layers[i].field_height, layers[i].stride_x, layers[i].stride_y, layers[i].zero_pad_x,
-											layers[i].zero_pad_y, layers[i].filter_size, batch_size, layers[i].layer_depth,
-											layers[i].layer_depth_out);
-		io::print_temp(1,0, layers[i], "before");
-		//activation funciton on each layer
+		layers[i].layer_output_r = thrust::raw_pointer_cast( &(layers[i].layer_output[0]) );
+
+		//setup grids and blocks
 		dim3 actv_g( int( (layers[i].field_width*layers[i].field_height*layers[i].layer_depth_out*batch_size)/blocksize ) +1, 1);
-		dim3 actv_b(blocksize,1);
-		kernels::sigmoid_activation<<<actv_g, actv_b>>>(layers[i].temp_r, layers[i].field_width, layers[i].field_height,
-														layers[i].layer_depth_out, layers[i].batch_size);
-		std::cout<<"test temp out: " << layers[i].temp[5] <<std::endl;
-		//pool layer
 		dim3 pool_g ( int( (layers[i].field_width_out*layers[i].field_height_out*layers[i].layer_depth_out*batch_size)/blocksize ) +1, 1);
-		dim3 pool_b (blocksize,1);
-		layers[i].layer_output_r = thrust::raw_pointer_cast(&layers[i].layer_output[0]);
-		kernels::pool_input<<<pool_g,pool_b>>>(layers[i].temp_r, layers[i].layer_output_r, layers[i].field_width_out,
-										layers[i].field_height_out,	layers[i].layer_depth_out, batch_size);
-		std::cout<<"test layer out: " << layers[i].layer_output[5] <<std::endl;
+		dim3 block (blocksize,1);
+		//convolute each layer
+		if (layers[i].lyr_conv == CONVOLUTIONAL)
+		{
+			dim3 conv_g( int( (layers[i].field_width*layers[i].field_height*layers[i].layer_depth*batch_size - 0.5)/blocksize ) + 1, 1);
+			kernels::convolute<<<conv_g,block>>>(layers[i].layer_input, layers[i].temp_r, layers[i].weights_r, layers[i].bias_r,
+												layers[i].field_width, layers[i].field_height, layers[i].stride_x, layers[i].stride_y,
+												layers[i].zero_pad_x, layers[i].zero_pad_y, layers[i].filter_size, batch_size,
+												layers[i].layer_depth, layers[i].layer_depth_out);
+		}
+		else if (layers[i].lyr_conv == FULLY_CONNECTED)
+		{
+			dim3 conv_g( int((layers[i].layer_depth_out*batch_size)/blocksize) +1, 1);
+			kernels::convolute_FC<<<conv_g,block>>>(layers[i].layer_input, layers[i].temp_r, layers[i].weights_r, layers[i].bias_r,
+												layers[i].field_width, layers[i].field_height, batch_size,
+												layers[i].layer_depth, layers[i].layer_depth_out);
+		}
+		//std::cout<<"printing conv from layer " << i <<std::endl;
+		//io::print_temp(1,0, layers[i], "conv");
+		//activation function on each layer
+		kernels::sigmoid_activation<<<actv_g, block>>>(layers[i].temp_r, layers[i].field_width, layers[i].field_height,
+														layers[i].layer_depth_out, layers[i].batch_size);
+
+		//pool layer
+		if (layers[i].pool)
+		{
+			kernels::pool_input<<<pool_g,block>>>(layers[i].temp_r, layers[i].layer_output_r, layers[i].field_width_out,
+													layers[i].field_height_out,	layers[i].layer_depth_out, batch_size);
+		}
+		else
+			layers[i].layer_output = layers[i].temp;
+		/*std::cout<<"printing sigm from layer " << i <<std::endl;
+		io::print_temp(1,0, layers[i], "sigm");
+		std::cout<<"printing weights from layer " << i <<std::endl;
+		io::print_weights(layers[i]);
+		std::cout<<"printing output from layer " << i <<std::endl;
+		io::print_output(1,0,layers[i],"");
+		std::cout<<"done with layer " << i <<"\n\n";*/
 	}
-	io::print_temp(1,0, layers[i], "after");
-	io::print_weights(layers[i]);
-	io::print_output(2,0,layers[i],"");
+	i = layers.size()-1;
+	/*io::print_temp(2,0, layers[i], "after");
+	io::print_weights(layers[i]);*/
+	//io::print_output(3,0,layers[i],"");
+	//soft pool
+	int step_size = 10; //todo this is 10 for cifar 10
+	unsigned int position;
+	double max_val;
+	for (int j=0; j<batch_size; j++)
+	{
+		thrust::device_vector<double>::iterator iter =
+			thrust::max_element(layers[i].layer_output.begin()+step_size*j, layers[i].layer_output.begin()+step_size*(j+1));
+		position = iter-layers[i].layer_output.begin();
+		position = position%step_size;
+		max_val = *iter;
+		std::cout << max_val*100 << "% confident that image " << j << " is a " << io::CIFAR10_int_to_class(position) << std::endl;
+	}
 }
 
 void network::initialise_layers()
@@ -93,6 +134,10 @@ void network::initialise_layers()
 		layers[i].batch_size = batch_size;
 		layers[i].learning_rate = learning_rate;
 		layers[i].initialise();
+		//check if layer sizing is correct
+		int outsize = (layers[i].field_height-layers[i].filter_size+layers[i].zero_pad_x*2)/layers[i].stride_x + 1;
+		std::cout << "The convolution of layer " << layers[i].layer_position << " (size " << layers[i].field_height <<
+				") will produce output of size " << outsize <<"\n\n";
 	}
 	//set next layer
 	for (int i=0; i<layers.size(); i++)
@@ -129,5 +174,5 @@ void network::print_network_info()
 	std::cout << "stride y: " << stride_y << std::endl;
 	std::cout << "zero pad x: " << zero_pad_x << std::endl;
 	std::cout << "zero pad y: " << zero_pad_y << std::endl;
-	std::cout << "learning_rate: " << learning_rate << std::endl;
+	std::cout << "learning_rate: " << learning_rate << "\n\n";
 }
