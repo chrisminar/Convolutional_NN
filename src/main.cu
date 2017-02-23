@@ -22,6 +22,7 @@ int main()
 	ntwrk.initialise_layers();
 	io::printDeviceMemoryUsage();
 	ntwrk.run();
+	ntwrk.train_epoch();
 
     return 0;
 }
@@ -31,3 +32,5 @@ int main()
 
 //general questions:
 //should weights be positive?
+//what is the best way to introduce bias into our solution?
+//why do we have to re cast arrays in network? --> why are the pointers changing between when they are first cast and run?

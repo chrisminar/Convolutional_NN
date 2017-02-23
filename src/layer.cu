@@ -51,8 +51,6 @@ void layer::initialise()
 		n = filter_size*filter_size*layer_depth;
 		for (int i=0; i < W.size(); i++)
 		{
-			if (i==0)
-				std::cout << num << std::endl;
 			W[i] = abs(num/n);
 		}
 

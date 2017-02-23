@@ -76,6 +76,26 @@ std::string CIFAR10_int_to_class(unsigned int value)
 	return classes[value];
 }
 
+void generate_target(thrust::device_vector<double> &target, thrust::device_vector<int> &label,
+		int batch_size, int start_image, int num_class)
+{
+	double high_bar = 0.95;
+	double low_bar = 0.05;
+	int target_index = 0;
+	for (int label_index=start_image; label_index< start_image+batch_size; label_index++)
+	{
+		for (int i=0; i<num_class; i++)
+		{
+			target_index = label_index*num_class + i;
+			if (i == label[label_index])
+			{
+				target[target_index] = high_bar;
+			}
+			else
+				target[target_index] = low_bar;
+		}
+	}
+}
 //read all the cifar-10 files
 void read_CIFAR10(image_DB &idb)
 {

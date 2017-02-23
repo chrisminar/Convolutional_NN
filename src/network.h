@@ -22,8 +22,14 @@ public:
 	std::vector<int> layer_depth;									//how deep is each layer coming in?
 	std::vector<int> layer_depth_out;								//how deep is each layer going out?
 
+	thrust::device_vector<double> delta_temp;
+	thrust::device_vector<double> target;
+	thrust::device_vector<double> errorD;
+
 	double	*mini_batch_r,											//pointer to a segment of the training data
-			*test_data_r;											//pointer to test data
+			*test_data_r,											//pointer to test data
+			*delta_temp_r,
+			*target_r;
 
 	int *mini_batch_label_r,
 		*test_data_label_r;
@@ -36,10 +42,12 @@ public:
 		zero_pad_y,													//layer y padding
 		filter_size,												//the size of the convolutional filter to use
 		batch_size;													//the number of images to train on
-	double learning_rate;
+	double learning_rate,
+			error;
 
 	//constructor
 	network(image_DB *idb);
+	void train_epoch();
 	void initialise_layers();
 	void print_network_info();
 	void parse_network_file(std::string fname);

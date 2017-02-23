@@ -8,12 +8,61 @@
 #include "network.h"
 #include <vector>
 #include "kernels/run.h"
+#include "kernels/train.h"
 #include <thrust/extrema.h>
+#include <thrust/functional.h>
+#include <thrust/transform.h>
+#include <thrust/transform_reduce.h>
+#include <thrust/merge.h>
+#include <thrust/copy.h>
 
 //constructor
 network::network(image_DB *idb)
 {
 	IDB = idb;
+}
+
+void network::train_epoch()
+{
+	int copy_position = 0;
+	//step backwards through layers
+	for (int i=layers.size()-1; i>-1; i--) //loop from size-1 to 0
+	{
+		//if its the last layer
+		if (i == layers.size()-1)
+		{
+			delta_temp = resize(layers[i].field_width_out*layers[i].field_height_out*layers[i].layer_depth_out*batch_size);
+			delta_temp_r = thrust::raw_pointer_cast( &(delta_temp[0]) );  //todo this segment can probably be done without coping the output array
+			//output_delta = layer_output - target
+			thrust::transform(layers[i].layer_output.begin(), layers[i].layer_output.end(),
+								target.begin(), delta_temp.begin(), thrust::minus<double>());
+			//error = sum(delta^2)
+			kernels::square<double> unary_op;
+			thrust::plus<float> binary_op;
+			error = thrust::transform_reduce(delta_temp.begin(), delta_temp.end(),
+											unary_op,
+											0.0,
+											binary_op);
+			//apply sigmoid' to deltas
+			kernels::d_sig<double> dsig_op;
+			thrust::transform(delta_temp.begin(), delta_temp.end(), delta_temp.begin(), dsig_op);
+			//append local delta to full delta array
+			for (int j=0; j<layers.size-1; j++)
+				copy_position += layers[j].field_width_out*layers[j].field_height_out*layers[j].layer_depth_out*batch_size;
+			thrust::copy(delta_temp.begin(),delta_temp.end(), delta.begin()); //todo YOU ARE HERE, need to initialize and resize delta somewhere
+		}
+		//else
+			//delta_pullback = weights dot delta_previous_layer (layer i+1)
+			//delta = append.(sigmoid(delta_pullback))
+	}
+	//step forward through layers
+		//delta_index = layercount-1-index
+		//if first lyaer
+			//stack layer_input and ones
+		//else
+			//stack layer output from the previous layer and some ones
+		//weightDelta = sum(layer_output*delta) //convolution happens here
+		//self.weights -= trainingRate*weightDelta
 }
 
 //run the network
@@ -90,7 +139,7 @@ void network::run()
 		position = iter-layers[i].layer_output.begin();
 		position = position%step_size;
 		max_val = *iter;
-		std::cout << max_val*100 << "% confident that image " << j << " is a " << io::CIFAR10_int_to_class(position) << std::endl;
+		//std::cout << max_val*100 << "% confident that image " << j << " is a " << io::CIFAR10_int_to_class(position) << std::endl;
 	}
 }
 
@@ -106,6 +155,13 @@ void network::initialise_layers()
 	test_data_r = thrust::raw_pointer_cast( &(IDB->training_D[0]) );
 	mini_batch_label_r = thrust::raw_pointer_cast( &(IDB->batch_1_labels_D[0]) );
 	test_data_label_r = thrust::raw_pointer_cast( &(IDB->training_labels_D[0]) );
+
+	//initialse first target
+	batch_size = 1;
+	target.resize(batch_size * 10);
+	io::generate_target(target, IDB->batch_1_labels_D, batch_size, 0, 10);
+	batch_size = 50;
+
 	//make layers
 	for (int i=0; i<activation_functions.size(); i++)
 	{
