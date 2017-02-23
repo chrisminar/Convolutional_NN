@@ -29,6 +29,8 @@ int main()
 
 //todo make print info dump to a file
 //todo backprop
+//todo is bias accounted for in the fully connected layer?
+//todo image indicies in kernels don't account for a starting image larger than 0
 
 //general questions:
 //should weights be positive?

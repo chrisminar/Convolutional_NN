@@ -28,11 +28,12 @@ void network::train_epoch()
 	//step backwards through layers
 	for (int i=layers.size()-1; i>-1; i--) //loop from size-1 to 0
 	{
+		//resize and cast delta
+		delta_temp.resize(layers[i].field_width_out*layers[i].field_height_out*layers[i].layer_depth_out*batch_size);
+		delta_temp_r = thrust::raw_pointer_cast( &(delta_temp[0]) );  //todo this segment can probably be done without coping the output array
 		//if its the last layer
 		if (i == layers.size()-1)
 		{
-			delta_temp = resize(layers[i].field_width_out*layers[i].field_height_out*layers[i].layer_depth_out*batch_size);
-			delta_temp_r = thrust::raw_pointer_cast( &(delta_temp[0]) );  //todo this segment can probably be done without coping the output array
 			//output_delta = layer_output - target
 			thrust::transform(layers[i].layer_output.begin(), layers[i].layer_output.end(),
 								target.begin(), delta_temp.begin(), thrust::minus<double>());
@@ -47,13 +48,16 @@ void network::train_epoch()
 			kernels::d_sig<double> dsig_op;
 			thrust::transform(delta_temp.begin(), delta_temp.end(), delta_temp.begin(), dsig_op);
 			//append local delta to full delta array
-			for (int j=0; j<layers.size-1; j++)
+			for (int j=0; j<layers.size()-1; j++)
 				copy_position += layers[j].field_width_out*layers[j].field_height_out*layers[j].layer_depth_out*batch_size;
-			thrust::copy(delta_temp.begin(),delta_temp.end(), delta.begin()); //todo YOU ARE HERE, need to initialize and resize delta somewhere
+			thrust::copy(delta_temp.begin(),delta_temp.end(), delta.begin());
 		}
-		//else
+		else
+		{
 			//delta_pullback = weights dot delta_previous_layer (layer i+1)
+			//delta_temp =
 			//delta = append.(sigmoid(delta_pullback))
+		}
 	}
 	//step forward through layers
 		//delta_index = layercount-1-index
@@ -141,6 +145,11 @@ void network::run()
 		max_val = *iter;
 		//std::cout << max_val*100 << "% confident that image " << j << " is a " << io::CIFAR10_int_to_class(position) << std::endl;
 	}
+	//resize deltas
+	int size = 0;
+	for (int i=0; i<layers.size(); i++)
+		size += layers[i].layer_output.size();
+	delta.resize(size);
 }
 
 void network::initialise_layers()
@@ -200,7 +209,7 @@ void network::initialise_layers()
 	{
 		if (i != layers.size() - 1)
 			layers[i].next_layer = &layers[i+1];
-		//layers[i].print_metadata();
+		layers[i].print_metadata();
 	}
 }
 

@@ -25,6 +25,7 @@ public:
 	thrust::device_vector<double> delta_temp;
 	thrust::device_vector<double> target;
 	thrust::device_vector<double> errorD;
+	thrust::device_vector<double> delta;
 
 	double	*mini_batch_r,											//pointer to a segment of the training data
 			*test_data_r,											//pointer to test data
