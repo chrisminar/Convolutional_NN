@@ -24,50 +24,86 @@ network::network(image_DB *idb)
 
 void network::train_epoch()
 {
-	int copy_position = 0;
-	//step backwards through layers
+	//step backwards through layers calculating deltas
 	for (int i=layers.size()-1; i>-1; i--) //loop from size-1 to 0
 	{
 		//resize and cast delta
-		delta_temp.resize(layers[i].field_width_out*layers[i].field_height_out*layers[i].layer_depth_out*batch_size);
+		delta_temp.resize(layers[i].field_width_out*layers[i].field_height_out*layers[i].layer_depth_out*batch_size); //todo biases not accounted for
 		delta_temp_r = thrust::raw_pointer_cast( &(delta_temp[0]) );  //todo this segment can probably be done without coping the output array
 		//if its the last layer
 		if (i == layers.size()-1)
 		{
-			//output_delta = layer_output - target
-			thrust::transform(layers[i].layer_output.begin(), layers[i].layer_output.end(),
-								target.begin(), delta_temp.begin(), thrust::minus<double>());
-			//error = sum(delta^2)
-			kernels::square<double> unary_op;
-			thrust::plus<float> binary_op;
-			error = thrust::transform_reduce(delta_temp.begin(), delta_temp.end(),
-											unary_op,
-											0.0,
-											binary_op);
-			//apply sigmoid' to deltas
-			kernels::d_sig<double> dsig_op;
-			thrust::transform(delta_temp.begin(), delta_temp.end(), delta_temp.begin(), dsig_op);
-			//append local delta to full delta array
-			for (int j=0; j<layers.size()-1; j++)
-				copy_position += layers[j].field_width_out*layers[j].field_height_out*layers[j].layer_depth_out*batch_size;
-			thrust::copy(delta_temp.begin(),delta_temp.end(), delta.begin());
+			delta_last_layer(i);
 		}
 		else
 		{
-			//delta_pullback = weights dot delta_previous_layer (layer i+1)
-			//delta_temp =
-			//delta = append.(sigmoid(delta_pullback))
+			delta_layer(i);
 		}
 	}
 	//step forward through layers
-		//delta_index = layercount-1-index
-		//if first lyaer
-			//stack layer_input and ones
-		//else
-			//stack layer output from the previous layer and some ones
+	for (int i=0; i<layers.size(); i++)
+	{
 		//weightDelta = sum(layer_output*delta) //convolution happens here
+		//if first layer
+		if (i==0)
+		{
+			weight_delta_first_layer(i);
+		}
+		else
+		{
+			weight_delta_layer(i);
+		}
+
 		//self.weights -= trainingRate*weightDelta
+	}
 }
+
+void delta_last_layer(int i) //TODO NEED TO REVERSE POOLING
+{
+	//output_delta = layer_output - target
+	thrust::transform(layers[i].layer_output.begin(), layers[i].layer_output.end(),
+						target.begin(), delta_temp.begin(), thrust::minus<double>());
+	//error = sum(delta^2)
+	kernels::square<double> unary_op;
+	thrust::plus<float> binary_op;
+	error = thrust::transform_reduce(delta_temp.begin(), delta_temp.end(),
+									unary_op,
+									0.0,
+									binary_op);
+	//apply sigmoid' to deltas
+	kernels::d_sig<double> dsig_op;
+	thrust::transform(delta_temp.begin(), delta_temp.end(), delta_temp.begin(), dsig_op);
+	//append local delta to full delta array
+	int copy_position = 0;
+	for (int j=0; j<layers.size()-1; j++)
+		copy_position += layers[j].field_width_out*layers[j].field_height_out*layers[j].layer_depth_out*batch_size;
+	thrust::copy(delta_temp.begin(),delta_temp.end(), delta.begin());
+}
+
+void delta_layer(int i) //TODO NEED TO REVERSE POOLING
+{
+	const int blocksize = 256;
+	dim3 grid( int((layers[i+1].field_width_out*layers[i+1].field_height_out*layers[i+1]*layer_depth_out*batch_size)/blocksize)+1, 1);
+	dim3 block(blocksize,1);
+	//delta_temp = weights dot delta_previous_layer (layer i+1)
+	if (layer[i+1].lyr_conv == FULLY_CONNECTED)
+	{
+		kernels::delta_FC<<<grid, block>>>(delta_temp_r, layers[i].weights_r, layers[i].bias_r, layers[i].bias_delta_r, layers[i+1].field_width, layers[i+1].field_height,
+											layers[i+1].layer_depth, layers[i+1].field_width_out, layers[i+1].field_height_out, layers[i+1].layer_depth_out, batch_size); //todo resize and init bias_delta
+	}
+	else
+	{
+		kernels::delta_pb<<<grid, block>>>(delta_temp_r, layers[i].weights_r, layers[i].bias_r, layers[i].bias_delta_r, layers[i+1].field_width, layers[i+1].field_height,
+											layers[i+1].layer_depth, layers[i+1].field_width_out, layers[i+1].field_height_out, layers[i+1].layer_depth_out, batch_size);
+	}
+	//apply sigmoid to delta_temp and copy to delta
+	int copy_position = 0;
+	for (int j=0; j<i; j++)
+		copy_position += layers[j].field_width_out*layers[j].field_height_out*layers[j].layer_depth_out*batch_size; //todo probably need some work with bias here //todo this index is totally wrong
+	kernels::d_sig<double> dsig_op;
+	thrust::transform(delta_temp.begin(), delta_temp.end(), delta.begin()+copy_position, dsig_op);
+}
+
 
 //run the network
 void network::run()

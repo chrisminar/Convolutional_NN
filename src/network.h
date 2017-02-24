@@ -49,6 +49,8 @@ public:
 	//constructor
 	network(image_DB *idb);
 	void train_epoch();
+	void delta_last_layer(int i);
+	void delta_layer(int i);
 	void initialise_layers();
 	void print_network_info();
 	void parse_network_file(std::string fname);
