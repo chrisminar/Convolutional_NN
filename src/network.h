@@ -22,10 +22,8 @@ public:
 	std::vector<int> layer_depth;									//how deep is each layer coming in?
 	std::vector<int> layer_depth_out;								//how deep is each layer going out?
 
-	thrust::device_vector<double> delta_temp;
 	thrust::device_vector<double> target;
 	thrust::device_vector<double> errorD;
-	thrust::device_vector<double> delta;
 
 	double	*mini_batch_r,											//pointer to a segment of the training data
 			*test_data_r,											//pointer to test data

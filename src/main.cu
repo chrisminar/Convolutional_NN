@@ -30,7 +30,12 @@ int main()
 //todo make print info dump to a file
 //todo backprop
 //todo is bias accounted for in the fully connected layer?
-//todo image indicies in kernels don't account for a starting image larger than 0
+
+//todo revisit the dtemp = dsig(Temp) kernels, then update network accordingly
+//todo calculate dweight is done for convolutional layers
+//todo dweight for pooling
+//todo dweight for fully_connected
+//todo dweight biases
 
 //general questions:
 //should weights be positive?

@@ -47,7 +47,7 @@ void network::train_epoch()
 		//if first layer
 		if (i==0)
 		{
-			weight_delta_first_layer(i);
+			weight_delta_first_layer(i); //TODO YOU ARE HERE, WRITE THESE FUNCTIONS
 		}
 		else
 		{
@@ -104,6 +104,13 @@ void delta_layer(int i) //TODO NEED TO REVERSE POOLING
 	thrust::transform(delta_temp.begin(), delta_temp.end(), delta.begin()+copy_position, dsig_op);
 }
 
+void weight_delta_first_layer(i)
+{
+	const int blocksize = 256;
+	dim3 grid( int((layers[i].field_width*layers[i].field_height*layers[i]*layer_depth)/blocksize)+1, 1);
+	dim3 block(blocksize,1);
+	kernels::weight_delta<<<grid,block>>>();
+}
 
 //run the network
 void network::run()

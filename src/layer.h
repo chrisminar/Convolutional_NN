@@ -19,13 +19,19 @@ public:
 	thrust::device_vector<double> temp;
 	thrust::device_vector<double> weights;
 	thrust::device_vector<double> bias;
+	thrust::device_vector<double> dtemp;
+	thrust::device_vector<double> dtemp_temp;
+	thrust::device_vector<double> dweight;
 
 	// layer array raw pointers
 	double	*layer_input,
 			*layer_output_r,
 			*temp_r,
 			*weights_r,
-			*bias_r;
+			*bias_r,
+			*dtemp_r,
+			*dtemp_temp_r,
+			*dweight_r;
 
 	// Layer metadata
 	activation_function actv_fn;
