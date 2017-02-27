@@ -27,7 +27,6 @@ public:
 
 	double	*mini_batch_r,											//pointer to a segment of the training data
 			*test_data_r,											//pointer to test data
-			*delta_temp_r,
 			*target_r;
 
 	int *mini_batch_label_r,
@@ -47,8 +46,10 @@ public:
 	//constructor
 	network(image_DB *idb);
 	void train_epoch();
-	void delta_last_layer(int i);
-	void delta_layer(int i);
+	void ddot_conv_layer(int i);
+	void ddot_fc_layer(int i);
+	void dw_conv_layer(int i);
+	void dw_fc_layer(int i);
 	void initialise_layers();
 	void print_network_info();
 	void parse_network_file(std::string fname);

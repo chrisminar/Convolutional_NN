@@ -19,8 +19,8 @@ public:
 	thrust::device_vector<double> temp;
 	thrust::device_vector<double> weights;
 	thrust::device_vector<double> bias;
-	thrust::device_vector<double> dtemp;
-	thrust::device_vector<double> dtemp_temp;
+	thrust::device_vector<double> ddot;
+	thrust::device_vector<double> ddot_temp;
 	thrust::device_vector<double> dweight;
 
 	// layer array raw pointers
@@ -29,8 +29,8 @@ public:
 			*temp_r,
 			*weights_r,
 			*bias_r,
-			*dtemp_r,
-			*dtemp_temp_r,
+			*ddot_r,
+			*ddot_temp_r,
 			*dweight_r;
 
 	// Layer metadata

@@ -38,6 +38,12 @@ void layer::initialise()
 		temp.resize(field_width_out*field_height_out*layer_depth_out*batch_size);
 	temp_r = thrust::raw_pointer_cast( &(temp[0]) );
 
+	//resize ddot
+	ddot.resize(field_width * field_height * layer_depth * batch_size);  //same size as input //ddot for output layer should be the size of the output
+	ddot_temp.resize(ddot.size());
+	ddot_r = thrust::raw_pointer_cast( & (ddot[0]) );
+	ddot_temp_r = thrust::raw_pointer_cast( & (ddot_temp[0]) );
+
 	//give weights and bias gaussian distribution
 	thrust::host_vector<double> W;
 	thrust::host_vector<double> B;
@@ -48,16 +54,17 @@ void layer::initialise()
 	if (lyr_typ != OUTPUT)
 	{
 		W.resize(filter_size*filter_size*layer_depth*layer_depth_out);
+		dweights.resize(filter_size*filter_size*layer_depth*layer_depth_out);
 		n = filter_size*filter_size*layer_depth;
 		for (int i=0; i < W.size(); i++)
 		{
 			W[i] = abs(num/n);
 		}
-
 	}
 	else
 	{
 		W.resize(field_width*field_height*layer_depth*layer_depth_out);
+		dweights.resize(field_width*field_height*layer_depth*layer_depth_out);
 		n = field_width*field_height*layer_depth;
 		for (int i=0; i<W.size(); i++)
 		{
@@ -74,8 +81,10 @@ void layer::initialise()
 
 	weights = W;
 	weights_r = thrust::raw_pointer_cast ( &(weights[0]) );
+	thrust::fill(dweights.begin(), dweights.end(), 0.0);
 	bias = B;
 	bias_r = thrust::raw_pointer_cast ( &(bias[0]) );
+
 }
 
 // constructors

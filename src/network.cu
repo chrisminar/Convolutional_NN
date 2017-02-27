@@ -28,88 +28,93 @@ void network::train_epoch()
 	for (int i=layers.size()-1; i>-1; i--) //loop from size-1 to 0
 	{
 		//resize and cast delta
-		delta_temp.resize(layers[i].field_width_out*layers[i].field_height_out*layers[i].layer_depth_out*batch_size); //todo biases not accounted for
-		delta_temp_r = thrust::raw_pointer_cast( &(delta_temp[0]) );  //todo this segment can probably be done without coping the output array
+		layers[i].ddot_r = thrust::raw_pointer_cast( &(layers[i].dot_r[0]) );  //todo this segment can probably be done without coping the output array
 		//if its the last layer
 		if (i == layers.size()-1)
 		{
-			delta_last_layer(i);
+			ddot_fc_layer(i);
 		}
 		else
 		{
-			delta_layer(i);
+			ddot_conv_layer(i);
 		}
 	}
 	//step forward through layers
 	for (int i=0; i<layers.size(); i++)
 	{
-		//weightDelta = sum(layer_output*delta) //convolution happens here
-		//if first layer
-		if (i==0)
+
+		//if fc   dweight = sum(layer_intput*ddot)
+		if (i==layers[i].lyr_conv == FULLY_CONNECTED)
 		{
-			weight_delta_first_layer(i); //TODO YOU ARE HERE, WRITE THESE FUNCTIONS
+			dw_fc_layer(i);
 		}
 		else
 		{
-			weight_delta_layer(i);
+			dw_conv_layer(i);
 		}
-
-		//self.weights -= trainingRate*weightDelta
+		//dweight = dweight*trainingrate
+		thrust::transform(layers[i].dweight.begin(), layers[i].dweight.end(), thrust::multiplies<double>());
+		//weights -= trainingRate*dweight
+		thrust::tansform(layers[i].weights.begin(), layers[i].weights.end(), layers[i].dweights.begin(), thrust::minus<double>());
+		//bias something or other
 	}
 }
 
-void delta_last_layer(int i) //TODO NEED TO REVERSE POOLING
+void network::ddot_fc_layer(int i)
 {
+	//note, can't handle FC with pooling
+	//note I think this can only handle the last layer, possible not all FC layers
 	//output_delta = layer_output - target
-	thrust::transform(layers[i].layer_output.begin(), layers[i].layer_output.end(),
-						target.begin(), delta_temp.begin(), thrust::minus<double>());
-	//error = sum(delta^2)
+	thrust::transform(layers[i].layer_output.begin(), layers[i].layer_output.end(), //iterate over layer_output
+						target.begin(), 											//subtract target
+						layers[i].ddot.begin(), 									//place results in ddot
+						thrust::minus<double>());									//subtract operator
+
+	//Calculate L2 error: sum(delta^2)
 	kernels::square<double> unary_op;
 	thrust::plus<float> binary_op;
-	error = thrust::transform_reduce(delta_temp.begin(), delta_temp.end(),
-									unary_op,
-									0.0,
-									binary_op);
-	//apply sigmoid' to deltas
+	error = thrust::transform_reduce(layers[i].ddot.begin(), layers[i].ddot.end(),	//iterate over ddot
+									unary_op,										//square ddot
+									0.0,											//start sum at 0
+									binary_op);										//reduction sum
+
+	//apply sigmoid' to ddot
 	kernels::d_sig<double> dsig_op;
-	thrust::transform(delta_temp.begin(), delta_temp.end(), delta_temp.begin(), dsig_op);
-	//append local delta to full delta array
-	int copy_position = 0;
-	for (int j=0; j<layers.size()-1; j++)
-		copy_position += layers[j].field_width_out*layers[j].field_height_out*layers[j].layer_depth_out*batch_size;
-	thrust::copy(delta_temp.begin(),delta_temp.end(), delta.begin());
+	thrust::transform(layers[i].ddot.begin(), layers[i].ddot.end(),					//iterate over ddot
+						dsig_op);													//take the sigmoid derivative of the input
 }
 
-void delta_layer(int i) //TODO NEED TO REVERSE POOLING
+
+void network::ddot_conv_layer(int i)
 {
-	const int blocksize = 256;
-	dim3 grid( int((layers[i+1].field_width_out*layers[i+1].field_height_out*layers[i+1]*layer_depth_out*batch_size)/blocksize)+1, 1);
-	dim3 block(blocksize,1);
-	//delta_temp = weights dot delta_previous_layer (layer i+1)
-	if (layer[i+1].lyr_conv == FULLY_CONNECTED)
-	{
-		kernels::delta_FC<<<grid, block>>>(delta_temp_r, layers[i].weights_r, layers[i].bias_r, layers[i].bias_delta_r, layers[i+1].field_width, layers[i+1].field_height,
-											layers[i+1].layer_depth, layers[i+1].field_width_out, layers[i+1].field_height_out, layers[i+1].layer_depth_out, batch_size); //todo resize and init bias_delta
-	}
-	else
-	{
-		kernels::delta_pb<<<grid, block>>>(delta_temp_r, layers[i].weights_r, layers[i].bias_r, layers[i].bias_delta_r, layers[i+1].field_width, layers[i+1].field_height,
-											layers[i+1].layer_depth, layers[i+1].field_width_out, layers[i+1].field_height_out, layers[i+1].layer_depth_out, batch_size);
-	}
-	//apply sigmoid to delta_temp and copy to delta
-	int copy_position = 0;
-	for (int j=0; j<i; j++)
-		copy_position += layers[j].field_width_out*layers[j].field_height_out*layers[j].layer_depth_out*batch_size; //todo probably need some work with bias here //todo this index is totally wrong
-	kernels::d_sig<double> dsig_op;
-	thrust::transform(delta_temp.begin(), delta_temp.end(), delta.begin()+copy_position, dsig_op);
+
+	// convert temp into ddot
+	//apply sigmoid to ddot
+	kernels::d_sig_from_sig<double> dsig_op;
+	//ddot = (1-temp)*temp
+	thrust::transform(layers[i].temp.begin(), layers[i].temp.end(),					//iterate over temp
+						layers[i].ddot.begin(),										//copy into ddot
+						dsig_op);													//temp is the sigmoid of the convoluted input, take the sigmoid and make it into a derivative
 }
 
-void weight_delta_first_layer(i)
+//rework, needs bias
+void network::dw_conv_layer(int i)
 {
 	const int blocksize = 256;
-	dim3 grid( int((layers[i].field_width*layers[i].field_height*layers[i]*layer_depth)/blocksize)+1, 1);
+	dim3 grid( int((layers[i].filter_size*layers[i].filter_size*layers[i]*layer_depth*layers[i].layer_depth_out)/blocksize)+1, 1);
 	dim3 block(blocksize,1);
-	kernels::weight_delta<<<grid,block>>>();
+	kernels::calculate_dweight<<<grid,block>>>(layers[i].dweight_r, layers[i].temp_r, layers[i].dtemp_r, layers[i].filter_size, layers[i].field_height, layers[i].field_width,
+												layers[i].layer_depth, layers[i].layer_depth_out, batch_size); //todo I think this should be operating on the layer input, not the temp
+}
+
+//done, needs bias
+void network::dw_fc_layer(int i)
+{
+	const int blocksize = 256;
+	dim3 grid( int(layers[i].weights.size()/blocksize)+1, 1);
+	dim3 block(blocksize,1);
+	kernels::calculate_fc_dweight<<<grid,block>>>(layers[i].dweight, layers[i].input, layers[i].dinput, layers[i].filter_size, layers[i].field_height, layers[i].field_width,
+													layers[i].layer_depth, layers[i].layer_depth_out, batch_size);
 }
 
 //run the network
@@ -188,11 +193,6 @@ void network::run()
 		max_val = *iter;
 		//std::cout << max_val*100 << "% confident that image " << j << " is a " << io::CIFAR10_int_to_class(position) << std::endl;
 	}
-	//resize deltas
-	int size = 0;
-	for (int i=0; i<layers.size(); i++)
-		size += layers[i].layer_output.size();
-	delta.resize(size);
 }
 
 void network::initialise_layers()

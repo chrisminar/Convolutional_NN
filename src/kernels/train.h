@@ -25,8 +25,19 @@ struct d_sig
     __host__ __device__
         T operator()(const T& x) const
     	{
-    		double sig =  1 / (1 + exp(x));
+    		double sig =  1 / (1 + exp(-x));
             return sig*(1-sig);
+        }
+};
+
+//unary operator that returns the derivative of the sigmoid function
+template <typename T>
+struct d_sig_from_sig
+{
+    __host__ __device__
+        T operator()(const T& x) const
+    	{
+            return x*(1-x);
         }
 };
 
@@ -39,5 +50,8 @@ void delta_pb(double *delta, double *weights, double *bias, double *bias_delta, 
 				int layer_depth, int field_width_out, int field_height_out, int layer_depth_out, int batch_size);
 
 __global__
-void weight_delta(double *dweight, double *temp, double *dtemp, int filter_size, int field_height, int field_width, int layer_depth, int layer_depth_out, int batch_size);
+void calculate_dweight(double *dweight, double *temp, double *dtemp, int filter_size, int field_height, int field_width, int layer_depth, int layer_depth_out, int batch_size);
+
+__global__
+void calculate_fc_dweight(double *dweight, double *temp, double *dtemp, int filter_size, int field_height, int field_width, int layer_depth, int layer_depth_out, int batch_size);
 }
