@@ -24,103 +24,96 @@ network::network(image_DB *idb)
 
 void network::train_epoch()
 {
-	//step backwards through layers calculating deltas
+	//back propogate throught the nerual network
 	for (int i=layers.size()-1; i>-1; i--) //loop from size-1 to 0
 	{
-		//resize and cast delta
+		//resize and cast ddot
 		layers[i].ddot_r = thrust::raw_pointer_cast( &(layers[i].dot_r[0]) );  //todo this segment can probably be done without coping the output array
-		//if its the last layer
-		if (i == layers.size()-1)
-		{
-			ddot_fc_layer(i);
-		}
-		else
-		{
-			ddot_conv_layer(i);
-		}
+
+		//propogate error up the network
+		//previous layer delta = convolute(change in error from previous layer output, weights)
+		//dE/dy^l-1 = convolute(dE/dx, weights)
+		//ddot^l-1 = convolute(dE/d(convoluted input from this layer(not temp, but the thing between input and temp), weights)
+		propogate_error_handler(i);
+
+		//calculate deltas at current layer
+		//delta = error at current layer * sigmoid of convoluted (layer input)
+		//dE/dx = dE/dy * sigma'(x)
+		//ddot = ddot * dsig_from_sig(temp)
+		ddot_handler(i);
+
+		//calculate weight gradiants at current layer
+		//weight delta(delta, layer input)
+		//dE/dw(dE/dx, y^l-1)
+		//dw(ddot, layer_input)
+		dw_handler(i);
 	}
-	//step forward through layers
-	for (int i=0; i<layers.size(); i++)
+}
+
+/*
+ * propogate error up the network
+ * previous layer delta = convolute(change in error from previous layer output, weights)
+ * dE/dy^l-1 = convolute(dE/dx, weights)
+ * ddot^l-1 = convolute(dE/d(convoluted input from this layer(not temp, but the thing between input and temp), weights)
+ */
+void network::propogate_error_handler(int i)
+{
+	//if we are on a fully connected layer, upstream shouldn't be convoluted for
+	if (layers[i].lyr_conv == FULLY_CONNECTED)
 	{
 
-		//if fc   dweight = sum(layer_intput*ddot)
-		if (i==layers[i].lyr_conv == FULLY_CONNECTED)
-		{
-			dw_fc_layer(i);
-		}
-		else
-		{
-			dw_conv_layer(i);
-		}
-		//dweight = dweight*trainingrate
-		thrust::transform(layers[i].dweight.begin(), layers[i].dweight.end(), thrust::multiplies<double>());
-		//weights -= trainingRate*dweight
-		thrust::tansform(layers[i].weights.begin(), layers[i].weights.end(), layers[i].dweights.begin(), thrust::minus<double>());
-		//bias something or other
+	}
+	//otherwise, call the convolution kernel
+	else
+	{
+
 	}
 }
 
-void network::ddot_fc_layer(int i)
+/*
+ * calculate deltas at current layer
+ * delta = error at current layer * sigmoid of convoluted (layer input)
+ * dE/dx = dE/dy * sigma'(x)
+ * ddot = ddot * dsig_from_sig(temp)
+ */
+void network::ddot_handler(int i)
 {
-	//note, can't handle FC with pooling
-	//note I think this can only handle the last layer, possible not all FC layers
-	//output_delta = layer_output - target
-	thrust::transform(layers[i].layer_output.begin(), layers[i].layer_output.end(), //iterate over layer_output
-						target.begin(), 											//subtract target
-						layers[i].ddot.begin(), 									//place results in ddot
-						thrust::minus<double>());									//subtract operator
-
-	//Calculate L2 error: sum(delta^2)
-	kernels::square<double> unary_op;
-	thrust::plus<float> binary_op;
-	error = thrust::transform_reduce(layers[i].ddot.begin(), layers[i].ddot.end(),	//iterate over ddot
-									unary_op,										//square ddot
-									0.0,											//start sum at 0
-									binary_op);										//reduction sum
-
-	//apply sigmoid' to ddot
-	kernels::d_sig<double> dsig_op;
-	thrust::transform(layers[i].ddot.begin(), layers[i].ddot.end(),					//iterate over ddot
-						dsig_op);													//take the sigmoid derivative of the input
+	//if we are on the output layer, we need to calculate the initial ddot
+	if (layers[i].lyr_typ == OUTPUT)
+	{
+		initial_ddot(i);
+	}
+	//once we have the initial ddot, apply the transformation
+	update_ddot(i);
 }
 
-
-void network::ddot_conv_layer(int i)
+/*
+ * calculate weight gradiants at current layer
+ * weight delta(delta, layer input)
+ * dE/dw(dE/dx, y^l-1)
+ * dw(ddot, layer_input)
+ */
+void network::dw_handler(int i)
 {
-
-	// convert temp into ddot
-	//apply sigmoid to ddot
-	kernels::d_sig_from_sig<double> dsig_op;
-	//ddot = (1-temp)*temp
-	thrust::transform(layers[i].temp.begin(), layers[i].temp.end(),					//iterate over temp
-						layers[i].ddot.begin(),										//copy into ddot
-						dsig_op);													//temp is the sigmoid of the convoluted input, take the sigmoid and make it into a derivative
-}
-
-//rework, needs bias
-void network::dw_conv_layer(int i)
-{
-	const int blocksize = 256;
-	dim3 grid( int((layers[i].filter_size*layers[i].filter_size*layers[i]*layer_depth*layers[i].layer_depth_out)/blocksize)+1, 1);
-	dim3 block(blocksize,1);
-	kernels::calculate_dweight<<<grid,block>>>(layers[i].dweight_r, layers[i].temp_r, layers[i].dtemp_r, layers[i].filter_size, layers[i].field_height, layers[i].field_width,
-												layers[i].layer_depth, layers[i].layer_depth_out, batch_size); //todo I think this should be operating on the layer input, not the temp
-}
-
-//done, needs bias
-void network::dw_fc_layer(int i)
-{
-	const int blocksize = 256;
-	dim3 grid( int(layers[i].weights.size()/blocksize)+1, 1);
-	dim3 block(blocksize,1);
-	kernels::calculate_fc_dweight<<<grid,block>>>(layers[i].dweight, layers[i].input, layers[i].dinput, layers[i].filter_size, layers[i].field_height, layers[i].field_width,
-													layers[i].layer_depth, layers[i].layer_depth_out, batch_size);
+	//if were at a fully connected layer
+	if (layers[i].lyr_conv == FULLY_CONNECTED)
+	{
+		dw_fc(i);
+	}
+	else
+	{
+		dw_conv(i);
+	}
+	//update weights
+	//update dweight to reflect training rate and momentum: dweight = dweight*trainingrate
+	thrust::transform(layers[i].dweight.begin(), layers[i].dweight.end(), thrust::multiplies<double>());
+	//update weights with weight deltas
+	thrust::tansform(layers[i].weights.begin(), layers[i].weights.end(), layers[i].dweights.begin(), thrust::minus<double>());
 }
 
 //run the network
 void network::run()
 {
-	//todo whats going on with weight deltas and deltas?
 	const int blocksize = 256;
 
 	int i;

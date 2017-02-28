@@ -29,13 +29,12 @@ int main()
 
 //todo make print info dump to a file
 //todo backprop
-//todo is bias accounted for in the fully connected layer?
 
-//todo revisit the dtemp = dsig(Temp) kernels, then update network accordingly
-//todo calculate dweight is done for convolutional layers
-//todo dweight for pooling
-//todo dweight for fully_connected
-//todo dweight biases
+//todo make sure dw conv and dw fc are operating according to the new method, they should be close
+//todo write the kernels for the ddot back propagation stuff
+//todo move thrust headers between network.cu and back_propogate/train.cu
+//todo biases
+
 
 //general questions:
 //should weights be positive?

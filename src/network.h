@@ -45,14 +45,29 @@ public:
 
 	//constructor
 	network(image_DB *idb);
+
+	// training
 	void train_epoch();
+	void propogate_error_handler(int i);
+	void ddot_handler(int i);
+	void dw_handler(int i);
+	//back_propogate/
+	void initial_ddot(int i);
+	void update_ddot(int i);
 	void ddot_conv_layer(int i);
 	void ddot_fc_layer(int i);
-	void dw_conv_layer(int i);
-	void dw_fc_layer(int i);
+	void dw_conv(int i);
+	void dw_fc(int i);
+
+	//init
 	void initialise_layers();
+
+	//run
+	void run();
+
+	//io
 	void print_network_info();
 	void parse_network_file(std::string fname);
-	void run();
+
 
 };
