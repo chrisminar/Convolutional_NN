@@ -59,8 +59,9 @@ void network::dw_conv(int i)
 	const int blocksize = 256;
 	dim3 grid( int((layers[i].filter_size*layers[i].filter_size*layers[i].layer_depth*layers[i].layer_depth_out)/blocksize)+1, 1);
 	dim3 block(blocksize,1);
-	kernels::calculate_dweight<<<grid,block>>>(layers[i].dweight_r, layers[i].temp_r, layers[i].dtemp_r, layers[i].filter_size, layers[i].field_height, layers[i].field_width,
-												layers[i].layer_depth, layers[i].layer_depth_out, batch_size); //todo I think this should be operating on the layer input, not the temp
+	kernels::calculate_dweight<<<grid,block>>>(layers[i].dweight_r, layers[i].input_r, layers[i].ddot_r, layers[i].pool_flag,
+												layers[i].filter_size, layers[i].field_height, layers[i].field_width,
+												layers[i].layer_depth, layers[i].layer_depth_out, batch_size);
 }
 
 /*
