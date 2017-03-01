@@ -8,7 +8,7 @@
 
 namespace kernels
 {
-__global__
+__global__//todo I'm suspicious of this kernels indexing, looping over layer depth and layer depth out seems wrong
 void convolute(double *input, double *temp, double *weights, double *bias, int field_width, int field_height,
 		int stride_x, int stride_y, int zero_pad_x, int zero_pad_y, int filter_size, int batch_size, int layer_depth, int layer_depth_out)
 {

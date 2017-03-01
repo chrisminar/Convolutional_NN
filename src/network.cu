@@ -9,12 +9,10 @@
 #include <vector>
 #include "kernels/run.h"
 #include "kernels/train.h"
-#include <thrust/extrema.h>
-#include <thrust/functional.h>
-#include <thrust/transform.h>
-#include <thrust/transform_reduce.h>
-#include <thrust/merge.h>
-#include <thrust/copy.h>
+#include <thrust/extrema.h>//keep
+#include <thrust/functional.h>//keep
+#include <thrust/transform.h>//keep
+
 
 //constructor
 network::network(image_DB *idb)

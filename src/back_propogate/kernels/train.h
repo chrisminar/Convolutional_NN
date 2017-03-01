@@ -56,18 +56,10 @@ struct sig_mult : public thrust::binary_function<double, double, double>
 		return a*(1-b)*b;
 	}
 };
-
-__global__
-void delta_FC(double *delta, double *weights, double *bias, int field_width, int field_height,
-				int layer_depth, int field_width_out, int field_height_out, int layer_depth_out, int batch_size);
-
-__global__
-void delta_pb(double *delta, double *weights, double *bias, double *bias_delta, int field_width, int field_height,
-				int layer_depth, int field_width_out, int field_height_out, int layer_depth_out, int batch_size);
-
 __global__
 void calculate_dweight(double *dweight, double *temp, double *dtemp, int filter_size, int field_height, int field_width, int layer_depth, int layer_depth_out, int batch_size);
-
 __global__
 void calculate_fc_dweight(double *dweight, double *temp, double *dtemp, int filter_size, int field_height, int field_width, int layer_depth, int layer_depth_out, int batch_size);
+__global__
+void propogate_ddot_conv(double *input, double *ddot, double *weights, double *bias, int filter_size, int field_height, int field_width, int layer_depth, int layer_depth_out, int batch_size);
 }

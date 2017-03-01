@@ -30,9 +30,8 @@ int main()
 //todo make print info dump to a file
 //todo backprop
 
-//todo make sure dw conv and dw fc are operating according to the new method, they should be close
-//todo write the kernels for the ddot back propagation stuff
-//todo move thrust headers between network.cu and back_propogate/train.cu
+//todo update propagate_ddot_conv to be sized from ddot l-1 and account for pooling YOU ARE HERE
+//todo write the kernels for the ddot back propagation for a fully connected layer
 //todo biases
 
 

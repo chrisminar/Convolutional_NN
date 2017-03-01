@@ -54,10 +54,10 @@ public:
 	//back_propogate/
 	void initial_ddot(int i);
 	void update_ddot(int i);
-	void ddot_conv_layer(int i);
-	void ddot_fc_layer(int i);
 	void dw_conv(int i);
 	void dw_fc(int i);
+	void upstream_ddot_fc(int i);
+	void upstream_ddot_conv(int i);
 
 	//init
 	void initialise_layers();
