@@ -23,7 +23,9 @@ MAKE = make
 PROJ_ROOT = $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 
 # source code directory
-SRC_DIR = $(PROJ_ROOT)/src
+KER1_DIR = $(PROJ_ROOT)/../src/back_propogate/kernels
+KER2_DIR = $(PROJ_ROOT)/../src/kernels
+SRC_DIR = $(PROJ_ROOT)
 
 # directory where object files are stored
 BUILD_DIR = $(PROJ_ROOT)/build
@@ -35,32 +37,38 @@ BIN_DIR = $(PROJ_ROOT)/bin
 SRC_EXT = .cu
 
 # convNet executable
-TARGET = $(PROJ_ROOT)/bin/convNet
+TARGET = $(PROJ_ROOT)/bin/convNet_test
 
 # list all source files in the source directory
+KER1S = $(shell find $(KER1_DIR) -type f -name \*$(SRC_EXT))
+KER2s = $(shell find $(KER2_DIR) -type f -name \*$(SRC_EXT))
 SRCS = $(shell find $(SRC_DIR) -type f -name \*$(SRC_EXT))
+
 # absolute path of all object files to be created
+OBJS1 = $(patsubst $(KER1_DIR)/%, $(BUILD_DIR)/%, $(KERS1:$(SRC_EXT)=.o))
+OBJS2 = $(patsubst $(KER2_DIR)/%, $(BUILD_DIR)/%, $(KERS2:$(SRC_EXT)=.o))
 OBJS = $(patsubst $(SRC_DIR)/%, $(BUILD_DIR)/%, $(SRCS:$(SRC_EXT)=.o))
 
 # include header files from convNet
 INC = -I $(SRC_DIR)
+INC += -I $(KER1_DIR)
+INC += -I $(KER2_DIR)
 
 #path of yaml static libary
-EXT_LIBS = $(PROJ_ROOT)/external/lib/libyaml-cpp.a
+#EXT_LIBS = $(PROJ_ROOT)/external/lib/libyaml-cpp.a
 # include YAML header files
-INC += -I $(PROJ_ROOT)/external/yaml-cpp/include
-
+#INC += -I $(PROJ_ROOT)/external/yaml-cpp/include
 
 .PHONY: all
 
 all: $(TARGET)
 
-$(TARGET): $(OBJS) $(EXT_LIBS)
+$(TARGET): $(OBJS) $(OBJS1) $(OBJS2) $(EXT_LIBS)
 	@echo "\nLinking ..."
 	@mkdir -p $(BIN_DIR)
 	$(CC) $^ -o $@
 
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%$(SRC_EXT)
+$(BUILD_DIR)/%.o: $(PROJ_ROOT)/%$(SRC_EXT)
 	@mkdir -p $(@D)
 	$(CC) $(CCFLAGS) $(INC) -c $< -o $@
 
@@ -94,4 +102,4 @@ cleanall: clean cleanexternal cleandoc
 
 # commands to run convNet
 run:
-	$(PROJ_ROOT)/bin/convNet
+	$(PROJ_ROOT)/bin/convNet_test

@@ -4,7 +4,7 @@
  * \brief Implementation of train epoch methods
  */
 
-#include <src/network.h> //link to class namespace
+#include <network.h> //link to class namespace
 #include "kernels/train.h" //link kernels
 #include <thrust/transform.h>
 #include <thrust/transform_reduce.h>
