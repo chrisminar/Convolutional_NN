@@ -54,7 +54,7 @@ void layer::initialise()
 	if (lyr_typ != OUTPUT)
 	{
 		W.resize(filter_size*filter_size*layer_depth*layer_depth_out);
-		dweights.resize(filter_size*filter_size*layer_depth*layer_depth_out);
+		dweight.resize(filter_size*filter_size*layer_depth*layer_depth_out);
 		n = filter_size*filter_size*layer_depth;
 		for (int i=0; i < W.size(); i++)
 		{
@@ -64,7 +64,7 @@ void layer::initialise()
 	else
 	{
 		W.resize(field_width*field_height*layer_depth*layer_depth_out);
-		dweights.resize(field_width*field_height*layer_depth*layer_depth_out);
+		dweight.resize(field_width*field_height*layer_depth*layer_depth_out);
 		n = field_width*field_height*layer_depth;
 		for (int i=0; i<W.size(); i++)
 		{
@@ -81,7 +81,7 @@ void layer::initialise()
 
 	weights = W;
 	weights_r = thrust::raw_pointer_cast ( &(weights[0]) );
-	thrust::fill(dweights.begin(), dweights.end(), 0.0);
+	thrust::fill(dweight.begin(), dweight.end(), 0.0);
 	bias = B;
 	bias_r = thrust::raw_pointer_cast ( &(bias[0]) );
 

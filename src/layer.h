@@ -22,6 +22,7 @@ public:
 	thrust::device_vector<double> ddot;
 	thrust::device_vector<double> ddot_temp;
 	thrust::device_vector<double> dweight;
+	thrust::device_vector<int> pool_flag;
 
 	// layer array raw pointers
 	double	*layer_input,
@@ -32,6 +33,7 @@ public:
 			*ddot_r,
 			*ddot_temp_r,
 			*dweight_r;
+	int *pool_flag_r;
 
 	// Layer metadata
 	activation_function actv_fn;

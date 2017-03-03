@@ -28,12 +28,9 @@ int main()
 }
 
 //todo make print info dump to a file
-//todo backprop
 
-//todo update propagate_ddot_conv to be sized from ddot l-1 and account for pooling YOU ARE HERE
-//todo write the kernels for the ddot back propagation for a fully connected layer
-//todo biases
-
+//todo backprop biases
+//todo initialise pool flag
 
 //general questions:
 //should weights be positive?

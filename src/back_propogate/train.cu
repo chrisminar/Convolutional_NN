@@ -4,8 +4,8 @@
  * \brief Implementation of train epoch methods
  */
 
-#include <network.h> //link to class namespace
-#include <kernels/train.h> //link kernels
+#include <src/network.h> //link to class namespace
+#include "kernels/train.h" //link kernels
 #include <thrust/transform.h>
 #include <thrust/transform_reduce.h>
 #include <thrust/functional.h>
@@ -26,7 +26,7 @@ void network::initial_ddot(int i)
 
 	//Calculate L2 error: sum(ddot^2)
 	kernels::square<double> unary_op;
-	thrust::plus<float> binary_op;
+	thrust::plus<double> binary_op;
 	error = thrust::transform_reduce(layers[i].ddot.begin(), layers[i].ddot.end(),	//iterate over ddot
 									unary_op,										//square ddot
 									0.0,											//start sum at 0
@@ -50,7 +50,7 @@ void network::dw_conv(int i)
 	const int blocksize = 256;
 	dim3 grid( int((layers[i].filter_size*layers[i].filter_size*layers[i].layer_depth*layers[i].layer_depth_out)/blocksize)+1, 1);
 	dim3 block(blocksize,1);
-	kernels::calculate_dweight<<<grid,block>>>(layers[i].dweight_r, layers[i].layer_input, layers[i].ddot_r, layers[i].pool_flag,
+	kernels::calculate_dweight<<<grid,block>>>(layers[i].dweight_r, layers[i].layer_input, layers[i].ddot_r, layers[i].pool_flag_r,
 												layers[i].filter_size, layers[i].field_height, layers[i].field_width,
 												layers[i].layer_depth, layers[i].layer_depth_out, batch_size);
 }
@@ -70,8 +70,11 @@ void network::dw_fc(int i)
 void network::upstream_ddot_fc(int i)
 {
 	const int blocksize = 256;
-	dim3 grid( int(()/blocksize)+1, 1);
+	dim3 grid( int((layers[i-1].ddot.size())/blocksize)+1, 1);
 	dim3 block(blocksize,1);
+	kernels::propogate_ddot_fc<<<grid, block>>>(layers[i].ddot_r, layers[i-1].ddot_r, layers[i].weights_r, layers[i].bias_r,
+															layers[i].field_height, layers[i].field_width, layers[i].layer_depth_out, layers[i].filter_size,
+															layers[i-1].field_height, layers[i-1].field_width, layers[i-1].layer_depth_out,  batch_size);
 }
 
 void network::upstream_ddot_conv(int i)
@@ -82,7 +85,7 @@ void network::upstream_ddot_conv(int i)
 	if (i!=0)
 	{
 		kernels::propogate_ddot_conv<<<grid, block>>>(layers[i].ddot_r, layers[i-1].ddot_r, layers[i].weights_r, layers[i].bias_r,
-														layers[i].filter_size, layers[i].field_height, layers[i].field_width,
-														layers[i].layer_depth, layers[i].layer_depth_out, batch_size);
+														layers[i].field_height, layers[i].field_width, layers[i].layer_depth_out, layers[i].filter_size,
+														layers[i-1].field_height, layers[i-1].field_width, layers[i-1].layer_depth_out,  batch_size);
 	}
 }

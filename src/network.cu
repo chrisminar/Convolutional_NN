@@ -8,7 +8,7 @@
 #include "network.h"
 #include <vector>
 #include "kernels/run.h"
-#include "kernels/train.h"
+#include "back_propogate/kernels/train.h"
 #include <thrust/extrema.h>//keep
 #include <thrust/functional.h>//keep
 #include <thrust/transform.h>//keep
@@ -26,13 +26,7 @@ void network::train_epoch()
 	for (int i=layers.size()-1; i>-1; i--) //loop from size-1 to 0
 	{
 		//resize and cast ddot
-		layers[i].ddot_r = thrust::raw_pointer_cast( &(layers[i].dot_r[0]) );  //todo this segment can probably be done without coping the output array
-
-		//propogate error up the network
-		//previous layer delta = convolute(change in error from previous layer output, weights)
-		//dE/dy^l-1 = convolute(dE/dx, weights)
-		//ddot^l-1 = convolute(dE/d(convoluted input from this layer(not temp, but the thing between input and temp), weights)
-		propogate_error_handler(i);
+		layers[i].ddot_r = thrust::raw_pointer_cast( &(layers[i].ddot[0]) );  //todo this segment can probably be done without coping the output array
 
 		//calculate deltas at current layer
 		//delta = error at current layer * sigmoid of convoluted (layer input)
@@ -45,6 +39,12 @@ void network::train_epoch()
 		//dE/dw(dE/dx, y^l-1)
 		//dw(ddot, layer_input)
 		dw_handler(i);
+
+		//propogate error up the network
+		//previous layer delta = convolute(change in error from previous layer output, weights)
+		//dE/dy^l-1 = convolute(dE/dx, weights)
+		//ddot^l-1 = convolute(dE/d(convoluted input from this layer(not temp, but the thing between input and temp), weights)
+		propogate_error_handler(i);
 	}
 }
 
@@ -104,9 +104,18 @@ void network::dw_handler(int i)
 	}
 	//update weights
 	//update dweight to reflect training rate and momentum: dweight = dweight*trainingrate
-	thrust::transform(layers[i].dweight.begin(), layers[i].dweight.end(), thrust::multiplies<double>());
+	thrust::device_vector<double> learning_rate_holder;
+	learning_rate_holder.resize(layers[i].dweight.size());
+	thrust::fill(learning_rate_holder.begin(), learning_rate_holder.end(), layers[i].learning_rate);
+	thrust::transform(layers[i].dweight.begin(), layers[i].dweight.end(),
+						learning_rate_holder.begin(),
+						layers[i].dweight.begin(),
+						thrust::multiplies<double>());
 	//update weights with weight deltas
-	thrust::tansform(layers[i].weights.begin(), layers[i].weights.end(), layers[i].dweights.begin(), thrust::minus<double>());
+	thrust::transform(layers[i].weights.begin(), layers[i].weights.end(),
+						layers[i].dweight.begin(),
+						layers[i].weights.begin(),
+						thrust::minus<double>());
 }
 
 //run the network

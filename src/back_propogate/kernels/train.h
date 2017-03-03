@@ -4,6 +4,7 @@
  * \brief Declaration of training kernels
  */
 
+#include <thrust/functional.h>
 #pragma once
 
 namespace kernels
@@ -51,15 +52,18 @@ struct d_sig_from_sig
 struct sig_mult : public thrust::binary_function<double, double, double>
 {
 	__host__ __device__
-	double operator() (double a, double b)
-	{
-		return a*(1-b)*b;
-	}
+	double operator() (double a, double b) { return a*(1-b)*b; }
 };
 __global__
-void calculate_dweight(double *dweight, double *temp, double *dtemp, int filter_size, int field_height, int field_width, int layer_depth, int layer_depth_out, int batch_size);
-__global__
+void calculate_dweight(double *dweight, double *input, double *ddot, int *pool_flag, int filter_size, int field_height, int field_width, int layer_depth, int layer_depth_out, int batch_size)
+;__global__
 void calculate_fc_dweight(double *dweight, double *temp, double *dtemp, int filter_size, int field_height, int field_width, int layer_depth, int layer_depth_out, int batch_size);
 __global__
-void propogate_ddot_conv(double *input, double *ddot, double *weights, double *bias, int filter_size, int field_height, int field_width, int layer_depth, int layer_depth_out, int batch_size);
+void propogate_ddot_conv(double *ddot, double *ddot_upstream, double *weights, double *bias,
+								int field_height, int field_width, int layer_depth_out, int filter_size,
+								int field_height_us, int field_width_us, int layer_depth_out_us, int batch_size);
+__global__
+void propogate_ddot_fc(double *ddot, double *ddot_upstream, double *weights, double *bias,
+						int field_height, int field_width, int layer_depth_out, int filter_size,
+						int field_height_us, int field_width_us, int layer_depth_out_us, int batch_size);
 }
