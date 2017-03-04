@@ -17,6 +17,7 @@
 #include <thrust/functional.h>
 #include <thrust/sequence.h>
 
+//tests all the operator functions
 void test_operators()
 {
 	std::vector<bool> flags(4);
@@ -54,6 +55,7 @@ bool test_square_op()
 	return flag;
 }
 
+//tests the dsig operator from train.h
 bool test_dsig_op()
 {
 	thrust::device_vector<double> 	V1(10),
@@ -81,6 +83,7 @@ bool test_dsig_op()
 	return flag;
 }
 
+//tests the dsig from sig operator from train.h
 bool test_dsig_from_sig_op()
 {
 	thrust::device_vector<double> 	V1(10),
@@ -116,6 +119,7 @@ bool test_dsig_from_sig_op()
 	return flag;
 }
 
+//test the sig mult operator from train.h
 bool test_sig_mult_op()
 {
 	thrust::device_vector<double> 	V1(10), //some sigmoid
