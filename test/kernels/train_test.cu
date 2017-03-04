@@ -5,6 +5,7 @@
  */
 
 #include "train_test.h"
+#include <stdio.h>
 
 namespace kernels
 {
@@ -82,19 +83,35 @@ void calculate_dweight_test(double *dweight, double *input, double *ddot, int *p
 
 //can't handle things that are not 1x1xsomething
 __global__
-void calculate_fc_dweight_test(double *dweight, double *input, double *ddot, int filter_size, int field_height, int field_width, int layer_depth, int layer_depth_out, int batch_size)
+void calculate_fc_dweight_test(double *dweight, double *input, double *ddot,
+								int filter_size, int field_height, int field_width,
+								int layer_depth, int layer_depth_out, int batch_size,
+								int *wi_t, int *oli_t, int *oln_t, int *ili_t,
+								int *iln_t, int *ly_t, int *lx_t,
+								int *input_index_t, int *ddot_index_t)
 {
-	int weight_index = threadIdx.x + blockDim.x * blockIdx.x,						//weight array index
-		outer_layer_index = weight_index % (filter_size*filter_size*layer_depth),	//count from 0 to fs*fs*ld for each layer out
-		outer_layer_number = weight_index / (filter_size*filter_size*layer_depth),	//outer layer this weight is in
-		inner_layer_index = outer_layer_index % (filter_size*filter_size),			//count from 0 to fs*fs for each inner layer
-		inner_layer_number = outer_layer_index / (filter_size*filter_size),			//inner layer this weight is in
-		layer_y = inner_layer_index/filter_size,									//y position in layer
-		layer_x = inner_layer_index%filter_size;									//x position in layer
+	//some useful numbers
+	int pixel_per_ol = filter_size*filter_size*layer_depth,
+		pixel_per_il = filter_size*filter_size;
+
+	//indices
+	int weight_index = threadIdx.x + blockDim.x * blockIdx.x;						//weight array index
+	int	outer_layer_index = weight_index % (pixel_per_ol);							//count from 0 to fs*fs*ld for each layer out
+	int	outer_layer_number = weight_index / (pixel_per_ol);							//outer layer this weight is in
+	int	inner_layer_index = outer_layer_index % (pixel_per_il);						//count from 0 to fs*fs for each inner layer
+	int	inner_layer_number = outer_layer_index / (pixel_per_il);					//inner layer this weight is in
+	int	layer_y = inner_layer_index/filter_size;									//y position in layer
+	int	layer_x = inner_layer_index%filter_size;									//x position in layer
 
 	if (weight_index >= filter_size*filter_size*layer_depth*layer_depth_out)
 		return;
-
+	wi_t[weight_index] = weight_index;
+	oli_t[weight_index] = weight_index % pixel_per_ol;
+	oln_t[weight_index] = outer_layer_number;
+	ili_t[weight_index] = inner_layer_index;
+	iln_t[weight_index] = inner_layer_number;
+	ly_t[weight_index] = layer_y;
+	lx_t[weight_index] = layer_x;
 	double sum=0;
 	int input_index;
 	int ddot_index;
@@ -108,6 +125,8 @@ void calculate_fc_dweight_test(double *dweight, double *input, double *ddot, int
 						inner_layer_number * field_width*field_height +
 						layer_y * field_width +
 						layer_x;
+		input_index_t[weight_index * batch_size + m] = input_index;
+		ddot_index_t[weight_index * batch_size + m] = ddot_index;
 		sum += input[input_index] * ddot[ddot_index];
 	}
 	dweight[weight_index] = sum;

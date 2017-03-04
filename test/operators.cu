@@ -72,7 +72,7 @@ bool test_dsig_op()
 	for (int i=0; i<V1.size(); i++)
 	{
 		double sig = 1 / (1 + exp(-V1[i]));
-		if (sig*(1-sig) != V2[i])
+		if (abs(sig*(1-sig) - V2[i]) > 1e-10)
 			flag = false;
 	}
 	if (!flag)

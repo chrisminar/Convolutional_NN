@@ -13,7 +13,7 @@ int main()
 {
 	cudaDeviceReset();
 	test_operators();
-	test_back_prop();
+	test_back_prop();//look at the last to indices of test the fc test, then test propogate kernels
 
 
 	return 0;

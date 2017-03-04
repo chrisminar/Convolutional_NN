@@ -17,9 +17,12 @@ void calculate_dweight_test(double *dweight, double *input, double *ddot, int *p
 							int *iln_t, int *ly_t, int *lx_t,
 							int *count, double *sum, int *input_index, int *ddot_index);
 ;__global__
-void calculate_fc_dweight_test(double *dweight, double *temp, double *dtemp,
-								int filter_size, int field_height, int field_width,
-								int layer_depth, int layer_depth_out, int batch_size);
+void calculate_fc_dweight_test(double *dweight, double *input, double *ddot,
+							int filter_size, int field_height, int field_width,
+							int layer_depth, int layer_depth_out, int batch_size,
+							int *wi_t, int *oli_t, int *oln_t, int *ili_t,
+							int *iln_t, int *ly_t, int *lx_t,
+							int *input_index_t, int *ddot_index_t);
 __global__
 void propogate_ddot_conv_test(double *ddot, double *ddot_upstream, double *weights, double *bias,
 								int field_height, int field_width, int layer_depth_out, int filter_size,
