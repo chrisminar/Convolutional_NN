@@ -25,7 +25,8 @@
 void test_back_prop()
 {
 	//test_calculate_dweight();
-	test_calculate_dweight_fc();
+	//test_calculate_dweight_fc();
+	test_propogate_conv();
 }
 
 bool test_calculate_dweight()
@@ -239,6 +240,93 @@ bool test_calculate_dweight_fc()
 	return true;
 }
 
+bool test_propogate_conv()
+{
+	//initialise arrays to test calculate dweight
+	thrust::device_vector<double>	weights,
+									ddot,
+									ddot_us;
+	thrust::device_vector<int>		output_index,
+									image_number,
+									image_index,
+									layer_us_number,
+									layer_us_index,
+									field_x,
+									field_y;
+
+	//init pointers
+	double *weights_r,
+			*ddot_r,
+			*ddot_us_r;
+	int *output_index_r,
+		*image_number_r,
+		*image_index_r,
+		*layer_us_number_r,
+		*layer_us_index_r,
+		*field_x_r,
+		*field_y_r;
+
+	//initialise testing values
+	int filter_size = 3,
+		field_height = 4,
+		field_width = 4,
+		field_width_us = 8,
+		field_height_us = 8,
+		layer_depth_out_us = 4,
+		layer_depth_out = 2,
+		batch_size = 2;
+
+	//resize arrays
+	weights.resize(filter_size*filter_size*layer_depth_out_us*layer_depth_out);
+	ddot.resize(field_width*field_height*layer_depth_out*batch_size);
+	ddot_us.resize(field_width_us*field_height_us*layer_depth_out_us*batch_size);
+	output_index.resize(ddot_us.size());
+	image_number.resize(ddot_us.size());
+	image_index.resize(ddot_us.size());
+	layer_us_number.resize(ddot_us.size());
+	layer_us_index.resize(ddot_us.size());
+	field_x.resize(ddot_us.size());
+	field_y.resize(ddot_us.size());
+
+	//cast points
+	weights_r = thrust::raw_pointer_cast( &(weights[0]) );
+	ddot_r = thrust::raw_pointer_cast( &(ddot[0]) );
+	ddot_us_r = thrust::raw_pointer_cast( &(ddot_us[0]) );
+	output_index_r = thrust::raw_pointer_cast( &(output_index[0]) );
+	image_number_r = thrust::raw_pointer_cast( &(image_number[0]) );
+	image_index_r = thrust::raw_pointer_cast( &(image_index[0]) );
+	layer_us_number_r = thrust::raw_pointer_cast( &(layer_us_number[0]) );
+	layer_us_index_r = thrust::raw_pointer_cast( &(layer_us_index[0]) );
+	field_x_r = thrust::raw_pointer_cast( &(field_x[0]) );
+	field_y_r = thrust::raw_pointer_cast( &(field_y[0]) );
+
+	//call kernel
+	const int blocksize = 256;
+	dim3 grid( int((field_width_us*field_height_us*layer_depth_out_us*batch_size)/blocksize)+1, 1);
+	dim3 block(blocksize,1);
+	kernels::propogate_ddot_conv_test<<<grid, block>>>(ddot_r, ddot_us_r, weights_r,
+														field_height, field_width, layer_depth_out, filter_size,
+														field_height_us, field_width_us, layer_depth_out_us, batch_size,
+														output_index_r, image_number_r, image_index_r, layer_us_number_r,
+														layer_us_index_r, field_x_r, field_y_r);
+
+	//prints to /scratch/src/convNet/convNet/test/output
+	print_temp(field_width_us, field_height_us, layer_depth_out_us, batch_size, "output_index", output_index);
+	print_temp(field_width_us, field_height_us, layer_depth_out_us, batch_size, "image_number", image_number);
+	print_temp(field_width_us, field_height_us, layer_depth_out_us, batch_size, "image_index", image_index);
+	print_temp(field_width_us, field_height_us, layer_depth_out_us, batch_size, "layer_us_number", layer_us_number);
+	print_temp(field_width_us, field_height_us, layer_depth_out_us, batch_size, "layer_us_index", layer_us_index);
+	print_temp(field_width_us, field_height_us, layer_depth_out_us, batch_size, "field_x", field_x);
+	print_temp(field_width_us, field_height_us, layer_depth_out_us, batch_size, "field_y", field_y);
+	/*
+	print_dweight_fc_test(layer_depth_out, layer_depth, filter_size, batch_size,
+							"input_index", input_index);
+	print_dweight_fc_test(layer_depth_out, layer_depth, filter_size, batch_size,
+							"ddot_index", ddot_index);*/
+
+	return true;
+}
+
 template<typename T>
 void print_weights(int ldo, int ld, int fs, std::string s, thrust::device_vector<T> w)
 {
@@ -357,3 +445,39 @@ void print_dweight_fc_test(int ldo, int ld, int fs, int bs, std::string s, thrus
 	}//end layer depth out
 
 }
+
+template <typename T>
+void print_temp(int fw, int fh, int ldo, int batch_size, std::string s, thrust::device_vector<T> temp)
+{
+	int pos = 0;
+	//setup fstream
+	std::ofstream myfile;
+	std::string folder = "/scratch/src/convNet/convNet/test";
+	std::stringstream out;
+	std::stringstream convert; convert << "/output/temp_" <<s<<".csv";
+	std::string folder_name = convert.str();
+	out<<folder<<folder_name;
+	myfile.open(out.str().c_str());
+	for (int m=0; m < batch_size; m++) //loop though images
+	{
+		myfile << "\nImage number: "<<m<<std::endl;
+		//std::cout << "\nImage number: "<<m<<std::endl;
+		for (int k=0; k<ldo; k++) //loop through layers
+		{
+			myfile << "Layer number: "<<k<<std::endl;
+			//std::cout << "Layer number: "<<k<<std::endl;
+			for (int j=0; j< fh; j++) //loop through rows
+			{
+				for (int i=0; i<fw; i++) //loop though cols
+				{
+					pos = m*fw*fh*ldo + k*fw*fh + fw*j + i;
+					myfile << temp[pos] << ", ";
+					//std::cout << pos << ", ";
+				}
+				myfile << "\n";
+				//std::cout << "\n";
+			}
+		}
+	}
+}
+

@@ -131,7 +131,7 @@ void calculate_fc_dweight_test(double *dweight, double *input, double *ddot,
 	}
 	dweight[weight_index] = sum;
 }
-
+/*
 __global__
 void propogate_ddot_fc_test(double *ddot, double *ddot_upstream, double *weights, double *bias,
 						int field_height, int field_width, int layer_depth_out, int filter_size,
@@ -174,13 +174,14 @@ void propogate_ddot_fc_test(double *ddot, double *ddot_upstream, double *weights
 	}//endk
 	ddot_upstream[output_index] = sum; //todo deal with bias
 }
-
+*/
 //note: not setup for alternate filter sizes, zero padding or strides
 //note: not sure if we need a pool flag for this kernel
 __global__
-void propogate_ddot_conv_test(double *ddot, double *ddot_upstream, double *weights, double *bias,
+void propogate_ddot_conv_test(double *ddot, double *ddot_upstream, double *weights,
 								int field_height, int field_width, int layer_depth_out, int filter_size,
-								int field_height_us, int field_width_us, int layer_depth_out_us, int batch_size) //layer_depth_out_us is the same as layer_depth for the current layer
+								int field_height_us, int field_width_us, int layer_depth_out_us, int batch_size,
+								int *oi_t, int *in_t, int *ii_t, int *lun_t, int *lui_t, int *fx_t, int *fy_t)
 {
 	//some useful numbers
 	int num_pixels_per_layer = field_width*field_height,
@@ -197,10 +198,17 @@ void propogate_ddot_conv_test(double *ddot, double *ddot_upstream, double *weigh
 		field_x = layer_us_index % field_width_us,					// ddot x position in output layer
 		field_y = layer_us_index / field_width_us;					// ddot y position in output layer
 
-
 	//if were outside of the minibatch range return
 	if (output_index >= num_pixels_per_image_us * batch_size)
 		return;
+
+	oi_t[output_index] = output_index;
+	in_t[output_index] = image_number;
+	ii_t[output_index] = image_index;
+	lun_t[output_index] = layer_us_number;
+	lui_t[output_index] = layer_us_index;
+	fy_t[output_index] = field_y;
+	fx_t[output_index] = field_x;
 
 	//setup dot product
 	double sum = 0;
