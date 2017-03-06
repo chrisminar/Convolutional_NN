@@ -181,7 +181,8 @@ __global__
 void propogate_ddot_conv_test(double *ddot, double *ddot_upstream, double *weights,
 								int field_height, int field_width, int layer_depth_out, int filter_size,
 								int field_height_us, int field_width_us, int layer_depth_out_us, int batch_size,
-								int *oi_t, int *in_t, int *ii_t, int *lun_t, int *lui_t, int *fx_t, int *fy_t)
+								int *oi_t, int *in_t, int *ii_t, int *lun_t, int *lui_t, int *fx_t, int *fy_t,
+								double *cpi_t, double *wi_t)
 {
 	//some useful numbers
 	int num_pixels_per_layer = field_width*field_height,
@@ -222,8 +223,9 @@ void propogate_ddot_conv_test(double *ddot, double *ddot_upstream, double *weigh
 	{
 		center_pixel_index =	image_number*num_pixels_per_image + 					// past images
 								k*num_pixels_per_layer +								// layers
-								field_y*(field_height/field_height_us)*field_width +	// rows
-								field_x*(field_width/field_height_us);					// columns
+								field_y*field_height/field_height_us*field_width +	// rows
+								field_x*field_width/field_width_us;					// columns
+		cpi_t[output_index*layer_depth_out + k] = center_pixel_index;
 		//loop over filter_x
 		for (int i=-filter_size/2; i<filter_half; i++)
 		{
@@ -236,12 +238,16 @@ void propogate_ddot_conv_test(double *ddot, double *ddot_upstream, double *weigh
 				{}
 				else
 				{
-					weight_index = 			k*filter_size*filter_size*layer_depth_out +			// layer outs
+					weight_index = 			k*filter_size*filter_size*layer_depth_out +		// layer outs
 											layer_us_number*filter_size*filter_size +		// layer in
 											filter_size*filter_size - 1 -					// maximum filter layer
 											filter_size*(j+filter_half) -					// filter rows
 											(i+filter_half);								// filter columns note: each filter is rotated by 180, which is why we go the the max of the filter layer then subtract off
 					sum += ddot[center_pixel_index + j*field_width + i] * weights[weight_index];
+					wi_t[output_index*layer_depth_out*filter_size*filter_size +
+					     k*filter_size*filter_size +
+					     j*filter_size +
+					     i] = weight_index;
 				}//endif
 			}//endj
 		}//endi

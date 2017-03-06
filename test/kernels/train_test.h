@@ -27,6 +27,7 @@ __global__
 void propogate_ddot_conv_test(double *ddot, double *ddot_upstream, double *weights,
 								int field_height, int field_width, int layer_depth_out, int filter_size,
 								int field_height_us, int field_width_us, int layer_depth_out_us, int batch_size,
-								int *oi_t, int *in_t, int *ii_t, int *lun_t, int *lui_t, int *fx_t, int *fy_t);
+								int *oi_t, int *in_t, int *ii_t, int *lun_t, int *lui_t, int *fx_t, int *fy_t,
+								double *cpi_t, double *wi_t);
 
 }
