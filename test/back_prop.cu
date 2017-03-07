@@ -26,7 +26,7 @@ void test_back_prop()
 {
 	//test_calculate_dweight();
 	//test_calculate_dweight_fc();
-	test_propogate_conv();
+	//test_propogate_conv();
 }
 
 bool test_calculate_dweight()
@@ -319,17 +319,17 @@ bool test_propogate_conv()
 														layer_us_index_r, field_x_r, field_y_r,
 														center_pixel_index_r, weight_index_r);
 	//prints to /scratch/src/convNet/convNet/test/output
-	print_temp(field_width_us, field_height_us, layer_depth_out_us, batch_size, "output_index", output_index);
-	/*print_temp(field_width_us, field_height_us, layer_depth_out_us, batch_size, "image_number", image_number);
+	/*print_temp(field_width_us, field_height_us, layer_depth_out_us, batch_size, "output_index", output_index);
+	print_temp(field_width_us, field_height_us, layer_depth_out_us, batch_size, "image_number", image_number);
 	print_temp(field_width_us, field_height_us, layer_depth_out_us, batch_size, "image_index", image_index);
 	print_temp(field_width_us, field_height_us, layer_depth_out_us, batch_size, "layer_us_number", layer_us_number);
 	print_temp(field_width_us, field_height_us, layer_depth_out_us, batch_size, "layer_us_index", layer_us_index);
 	print_temp(field_width_us, field_height_us, layer_depth_out_us, batch_size, "field_x", field_x);
-	print_temp(field_width_us, field_height_us, layer_depth_out_us, batch_size, "field_y", field_y);*/
+	print_temp(field_width_us, field_height_us, layer_depth_out_us, batch_size, "field_y", field_y);
 
 	print_temp_cpi(field_width_us, field_height_us, layer_depth_out_us, filter_size, layer_depth_out, batch_size,
 					"center_pixel index", center_pixel_index);
-	/*print_temp_we(field_width_us, field_height_us, layer_depth_out_us, filter_size, layer_depth_out, batch_size,
+	print_temp_wi(field_width_us, field_height_us, layer_depth_out_us, filter_size, layer_depth_out, batch_size,
 					"weight index", weight_index);*/
 
 	return true;
@@ -586,12 +586,13 @@ void print_temp_wi(int fw, int fh, int ldo, int fs, int ld, int batch_size, std:
 	{
 		myfile << "\nImage number: "<<m<<std::endl;
 		//std::cout << "\nImage number: "<<m<<std::endl;
-		for (int k=0; k<ldo; k++) //loop through layers
+		for (int k=0; k<ldo; k++) //loop through layers depth out upstream
 		{
-			myfile << "Layer number: "<<k<<std::endl;
+			myfile << "Layer depth out upstream: "<<k<<std::endl;
 			//std::cout << "Layer number: "<<k<<std::endl;
-			for (int l=0; l<ld; l++) //loop through layer depth
+			for (int l=0; l<ld; l++) //loop through layer out
 			{
+				myfile << "Layer depth out: "<<l<<std::endl;
 				for (int j=0; j< fh; j++) //loop through rows
 				{
 					for (int y=0; y<fs; y++) //loop through filter rows

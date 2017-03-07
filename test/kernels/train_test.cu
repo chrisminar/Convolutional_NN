@@ -221,36 +221,38 @@ void propogate_ddot_conv_test(double *ddot, double *ddot_upstream, double *weigh
 	//loop over layer depth
 	for (int k=0; k<layer_depth_out; k++)
 	{
-		center_pixel_index =	image_number*num_pixels_per_image + 					// past images
-								k*num_pixels_per_layer +								// layers
+		center_pixel_index =	image_number*num_pixels_per_image + 				// past images
+								k*num_pixels_per_layer +							// layers
 								field_y*field_height/field_height_us*field_width +	// rows
 								field_x*field_width/field_width_us;					// columns
 		cpi_t[output_index*layer_depth_out + k] = center_pixel_index;
-		//loop over filter_x
-		for (int i=-filter_size/2; i<filter_half; i++)
+		//loop over filter_y
+		for (int j=-filter_half; j<=filter_half; j++)
 		{
-			//loop over filter_y
-			for (int j=-filter_size/2; j<filter_half; j++)
+			//loop over filter_x
+			for (int i=-filter_half; i<=filter_half; i++)
 			{
 				//check if we are at a boundary to account for zero padding
-				//      left                           right                           bottom                     top
-				if ( (field_x + i < 0) || (field_x + i >= field_width-1) || (field_y + j < 0) || (field_y + j >= field_height-1) )
+				//     						 left                         				  right
+				if ( (field_x*field_width/field_width_us + i < 0) || (field_x*field_width/field_width_us + i >= field_width) ||
+						//							bottom                   								  top
+						(field_y*field_height/field_height_us*field_width + j < 0) || (field_y*field_height/field_height_us + j >= field_height) )
 				{}
 				else
 				{
-					weight_index = 			k*filter_size*filter_size*layer_depth_out +		// layer outs
-											layer_us_number*filter_size*filter_size +		// layer in
-											filter_size*filter_size - 1 -					// maximum filter layer
-											filter_size*(j+filter_half) -					// filter rows
-											(i+filter_half);								// filter columns note: each filter is rotated by 180, which is why we go the the max of the filter layer then subtract off
-					sum += ddot[center_pixel_index + j*field_width + i] * weights[weight_index];
+					weight_index = 			k*layer_depth_out_us*filter_size*filter_size +				// layer outs
+											layer_us_number*filter_size*filter_size +				// layer in
+											filter_size*filter_size - 1 -							// maximum filter layer
+											filter_size*(j+filter_half) -							// filter rows
+											(i+filter_half);										// filter columns note: each filter is rotated by 180, which is why we go the the max of the filter layer then subtract off
+					sum += ddot[center_pixel_index + j*field_width + i] * weights[weight_index];	//todo multiplier for center pixel index is probably wrong
 					wi_t[output_index*layer_depth_out*filter_size*filter_size +
-					     k*filter_size*filter_size +
-					     j*filter_size +
-					     i] = weight_index;
+						 k*filter_size*filter_size +
+						 (j+filter_half)*filter_size +
+						 (i+filter_half)] = weight_index;
 				}//endif
-			}//endj
-		}//endi
+			}//endi
+		}//endj
 	}//endk
 	ddot_upstream[output_index] = sum; //todo deal with bias
 }
