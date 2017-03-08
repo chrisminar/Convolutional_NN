@@ -29,9 +29,9 @@ int main()
 
 //todo make print info dump to a file
 
-//todo currently writing indexing unit test for calc_dweight_fc
-//todo backprop biases
-//todo initialise pool flag
+//todo pool flag
+//todo biases
+//todo tests!
 
 //general questions:
 //should weights be positive?

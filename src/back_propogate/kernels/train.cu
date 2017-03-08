@@ -10,7 +10,9 @@ namespace kernels
 {
 
 __global__
-void calculate_dweight(double *dweight, double *input, double *ddot, int *pool_flag, int filter_size, int field_height, int field_width, int layer_depth, int layer_depth_out, int batch_size)
+void calculate_dweight(double *dweight, double *input, double *ddot, int *pool_flag,
+						int filter_size, int field_height, int field_width,
+						int layer_depth, int layer_depth_out, int batch_size)
 {
 	int weight_index = threadIdx.x + blockDim.x * blockIdx.x,						//weight array index
 		outer_layer_index = weight_index % (filter_size*filter_size*layer_depth),	//count from 0 to fs*fs*ld for each layer out
@@ -42,7 +44,7 @@ void calculate_dweight(double *dweight, double *input, double *ddot, int *pool_f
 								j * field_width +
 								i;
 				ddot_index = 	m * field_width*field_height*layer_depth_out +
-								outer_layer_number * field_width*field_height +
+								outer_layer_number*field_width*field_height +
 								j * field_width +
 								i;
 
@@ -60,15 +62,22 @@ void calculate_dweight(double *dweight, double *input, double *ddot, int *pool_f
 
 //can't handle things that are not 1x1xsomething
 __global__
-void calculate_fc_dweight(double *dweight, double *input, double *ddot, int filter_size, int field_height, int field_width, int layer_depth, int layer_depth_out, int batch_size)
+void calculate_fc_dweight(double *dweight, double *input, double *ddot,
+							int filter_size, int field_height, int field_width,
+							int layer_depth, int layer_depth_out, int batch_size)
 {
-	int weight_index = threadIdx.x + blockDim.x * blockIdx.x,						//weight array index
-		outer_layer_index = weight_index % (filter_size*filter_size*layer_depth),	//count from 0 to fs*fs*ld for each layer out
-		outer_layer_number = weight_index / (filter_size*filter_size*layer_depth),	//outer layer this weight is in
-		inner_layer_index = outer_layer_index % (filter_size*filter_size),			//count from 0 to fs*fs for each inner layer
-		inner_layer_number = outer_layer_index / (filter_size*filter_size),			//inner layer this weight is in
-		layer_y = inner_layer_index/filter_size,									//y position in layer
-		layer_x = inner_layer_index%filter_size;									//x position in layer
+	//some useful numbers
+	int pixel_per_ol = filter_size*filter_size*layer_depth,
+		pixel_per_il = filter_size*filter_size;
+
+	//indices
+	int weight_index = threadIdx.x + blockDim.x * blockIdx.x;						//weight array index
+	int	outer_layer_index = weight_index % (pixel_per_ol);							//count from 0 to fs*fs*ld for each layer out
+	int	outer_layer_number = weight_index / (pixel_per_ol);							//outer layer this weight is in
+	int	inner_layer_index = outer_layer_index % (pixel_per_il);						//count from 0 to fs*fs for each inner layer
+	int	inner_layer_number = outer_layer_index / (pixel_per_il);					//inner layer this weight is in
+	int	layer_y = inner_layer_index/filter_size;									//y position in layer
+	int	layer_x = inner_layer_index%filter_size;									//x position in layer
 
 	if (weight_index >= filter_size*filter_size*layer_depth*layer_depth_out)
 		return;
@@ -125,10 +134,10 @@ void propogate_ddot_fc(double *ddot, double *ddot_upstream, double *weights, dou
 	{
 		ddot_index =	image_number*num_pixels_per_ddot_image +		// past images
 						k*num_pixels_per_ddot_layer;					// layers
-		weight_index = 	k*field_width*field_height*layer_depth_out +	// layer outs
+		weight_index = 	k*field_width*field_height*layer_depth_out_us +	// layer outs
 						layer_us_number*field_height*field_width +		// layer in
-						field_y*(field_height/field_height_us)*field_width +	// filter rows
-						field_x*(field_width/field_width_us);			// filter columns note: each filter is rotated by 180, which is why we go the the max of the filter layer then subtract off
+						field_y*field_height/field_height_us*field_width +	// filter rows
+						field_x*field_width/field_width_us;			// filter columns note: each filter is rotated by 180, which is why we go the the max of the filter layer then subtract off
 		sum += ddot[ddot_index] * weights[weight_index];
 	}//endk
 	ddot_upstream[output_index] = sum; //todo deal with bias
@@ -156,7 +165,6 @@ void propogate_ddot_conv(double *ddot, double *ddot_upstream, double *weights, d
 		field_x = layer_us_index % field_width_us,					// ddot x position in output layer
 		field_y = layer_us_index / field_width_us;					// ddot y position in output layer
 
-
 	//if were outside of the minibatch range return
 	if (output_index >= num_pixels_per_image_us * batch_size)
 		return;
@@ -173,29 +181,31 @@ void propogate_ddot_conv(double *ddot, double *ddot_upstream, double *weights, d
 	{
 		center_pixel_index =	image_number*num_pixels_per_image + 					// past images
 								k*num_pixels_per_layer +								// layers
-								field_y*(field_height/field_height_us)*field_width +	// rows
-								field_x*(field_width/field_height_us);					// columns
-		//loop over filter_x
-		for (int i=-filter_size/2; i<filter_half; i++)
+								field_y*field_height/field_height_us*field_width +	// rows
+								field_x*field_width/field_height_us;					// columns
+		//loop over filter_y
+		for (int j=-filter_size/2; j<filter_half; j++)
 		{
-			//loop over filter_y
-			for (int j=-filter_size/2; j<filter_half; j++)
+			//loop over filter_x
+			for (int i=-filter_size/2; i<filter_half; i++)
 			{
 				//check if we are at a boundary to account for zero padding
-				//      left                           right                           bottom                     top
-				if ( (field_x + i < 0) || (field_x + i >= field_width-1) || (field_y + j < 0) || (field_y + j >= field_height-1) )
+				//     						 left                         				  right
+				if ( (field_x*field_width/field_width_us + i < 0) || (field_x*field_width/field_width_us + i >= field_width) ||
+						//							bottom                   								  top
+						(field_y*field_height/field_height_us*field_width + j < 0) || (field_y*field_height/field_height_us + j >= field_height) )
 				{}
 				else
 				{
-					weight_index = 			k*filter_size*filter_size*layer_depth_out +			// layer outs
-											layer_us_number*filter_size*filter_size +		// layer in
-											filter_size*filter_size - 1 -					// maximum filter layer
-											filter_size*(j+filter_half) -					// filter rows
+					weight_index = 			k*layer_depth_out_us*filter_size*filter_size +			// layer outs
+											layer_us_number*filter_size*filter_size +				// layer in
+											filter_size*filter_size - 1 -							// maximum filter layer
+											filter_size*(j+filter_half) -							// filter rows
 											(i+filter_half);								// filter columns note: each filter is rotated by 180, which is why we go the the max of the filter layer then subtract off
 					sum += ddot[center_pixel_index + j*field_width + i] * weights[weight_index];
 				}//endif
-			}//endj
-		}//endi
+			}//endi
+		}//endj
 	}//endk
 	ddot_upstream[output_index] = sum; //todo deal with bias
 }

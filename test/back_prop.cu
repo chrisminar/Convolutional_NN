@@ -25,9 +25,9 @@
 void test_back_prop()
 {
 	//test_calculate_dweight();
-	//test_calculate_dweight_fc();
+	test_calculate_dweight_fc();
 	//test_propogate_conv();
-	test_propogate_fc();
+	//test_propogate_fc();
 }
 
 bool test_calculate_dweight()
@@ -219,15 +219,8 @@ bool test_calculate_dweight_fc()
 													input_index_r, ddot_index_r);
 
 	//prints to /scratch/src/convNet/convNet/test/output
-	print_weights(layer_depth_out, layer_depth, filter_size, "weight_index", weight_index);
+	/*print_weights(layer_depth_out, layer_depth, filter_size, "weight_index", weight_index);
 	print_weights(layer_depth_out, layer_depth, filter_size, "outer_layer_index", outer_layer_index);
-	std::cout << "weight index " << weight_index[0] << "\n";
-	std::cout << "outer layer index " << outer_layer_index[0] << "\n";
-	std::cout << "outer lyaer number " << outer_layer_number[0] << "\n";
-	std::cout << "inner layer index " << inner_layer_index[0] << "\n";
-	std::cout << "inner layer number " << inner_layer_number[0] << "\n";
-	std::cout << "x " << layer_x[0] << "\n";
-	std::cout << "y " << layer_y[0] << "\n";
 	print_weights(layer_depth_out, layer_depth, filter_size, "outer_layer_number", outer_layer_number);
 	print_weights(layer_depth_out, layer_depth, filter_size, "inner_layer_number", inner_layer_number);
 	print_weights(layer_depth_out, layer_depth, filter_size, "inner_layer_index", inner_layer_index);
@@ -236,7 +229,7 @@ bool test_calculate_dweight_fc()
 	print_dweight_fc_test(layer_depth_out, layer_depth, filter_size, batch_size,
 							"input_index", input_index);
 	print_dweight_fc_test(layer_depth_out, layer_depth, filter_size, batch_size,
-							"ddot_index", ddot_index);
+							"ddot_index", ddot_index);*/
 
 	return true;
 }
@@ -415,7 +408,7 @@ bool test_propogate_fc()
 														layer_us_index_r, field_x_r, field_y_r,
 														ddot_index_r, weight_index_r);
 	//prints to /scratch/src/convNet/convNet/test/output
-	print_temp(field_width_us, field_height_us, layer_depth_out_us, batch_size, "output_index", output_index);
+	/*print_temp(field_width_us, field_height_us, layer_depth_out_us, batch_size, "output_index", output_index);
 	print_temp(field_width_us, field_height_us, layer_depth_out_us, batch_size, "image_number", image_number);
 	print_temp(field_width_us, field_height_us, layer_depth_out_us, batch_size, "image_index", image_index);
 	print_temp(field_width_us, field_height_us, layer_depth_out_us, batch_size, "layer_us_number", layer_us_number);
@@ -426,7 +419,7 @@ bool test_propogate_fc()
 	print_temp_cpi(field_width_us, field_height_us, layer_depth_out_us, filter_size, layer_depth_out, batch_size,
 					"ddot index", ddot_index);
 	print_temp_cpi(field_width_us, field_height_us, layer_depth_out_us, filter_size, layer_depth_out, batch_size,
-					"weight index", weight_index);
+					"weight index", weight_index);*/
 
 	return true;
 }
