@@ -27,6 +27,7 @@ void test_back_prop()
 	//test_calculate_dweight();
 	//test_calculate_dweight_fc();
 	//test_propogate_conv();
+	test_propogate_fc();
 }
 
 bool test_calculate_dweight()
@@ -334,13 +335,15 @@ bool test_propogate_conv()
 
 	return true;
 }
-/*
+
 bool test_propogate_fc()
 {
 	//initialise arrays to test calculate dweight
 	thrust::device_vector<double>	weights,
 									ddot,
-									ddot_us;
+									ddot_us,
+									ddot_index,
+									weight_index;
 	thrust::device_vector<int>		output_index,
 									image_number,
 									image_index,
@@ -352,7 +355,9 @@ bool test_propogate_fc()
 	//init pointers
 	double *weights_r,
 			*ddot_r,
-			*ddot_us_r;
+			*ddot_us_r,
+			*ddot_index_r,
+			*weight_index_r;
 	int *output_index_r,
 		*image_number_r,
 		*image_index_r,
@@ -367,8 +372,8 @@ bool test_propogate_fc()
 		field_width = 4,
 		field_width_us = 8,
 		field_height_us = 8,
-		layer_depth_out_us = 4,
-		layer_depth_out = 2,
+		layer_depth_out_us = 2,
+		layer_depth_out = 10,
 		batch_size = 2;
 
 	//resize arrays
@@ -382,6 +387,8 @@ bool test_propogate_fc()
 	layer_us_index.resize(ddot_us.size());
 	field_x.resize(ddot_us.size());
 	field_y.resize(ddot_us.size());
+	ddot_index.resize(ddot_us.size()*layer_depth_out);
+	weight_index.resize(ddot_us.size()*layer_depth_out);
 
 	//cast points
 	weights_r = thrust::raw_pointer_cast( &(weights[0]) );
@@ -394,17 +401,19 @@ bool test_propogate_fc()
 	layer_us_index_r = thrust::raw_pointer_cast( &(layer_us_index[0]) );
 	field_x_r = thrust::raw_pointer_cast( &(field_x[0]) );
 	field_y_r = thrust::raw_pointer_cast( &(field_y[0]) );
+	ddot_index_r = thrust::raw_pointer_cast( &(ddot_index[0]) );
+	weight_index_r = thrust::raw_pointer_cast( &(weight_index[0]) );
 
 	//call kernel
 	const int blocksize = 256;
 	dim3 grid( int((field_width_us*field_height_us*layer_depth_out_us*batch_size)/blocksize)+1, 1);
 	dim3 block(blocksize,1);
-	kernels::propogate_ddot_conv_test<<<grid, block>>>(ddot_r, ddot_us_r, weights_r,
+	kernels::propogate_ddot_fc_test<<<grid, block>>>(ddot_r, ddot_us_r, weights_r,
 														field_height, field_width, layer_depth_out, filter_size,
 														field_height_us, field_width_us, layer_depth_out_us, batch_size,
 														output_index_r, image_number_r, image_index_r, layer_us_number_r,
-														layer_us_index_r, field_x_r, field_y_r);
-
+														layer_us_index_r, field_x_r, field_y_r,
+														ddot_index_r, weight_index_r);
 	//prints to /scratch/src/convNet/convNet/test/output
 	print_temp(field_width_us, field_height_us, layer_depth_out_us, batch_size, "output_index", output_index);
 	print_temp(field_width_us, field_height_us, layer_depth_out_us, batch_size, "image_number", image_number);
@@ -414,9 +423,14 @@ bool test_propogate_fc()
 	print_temp(field_width_us, field_height_us, layer_depth_out_us, batch_size, "field_x", field_x);
 	print_temp(field_width_us, field_height_us, layer_depth_out_us, batch_size, "field_y", field_y);
 
+	print_temp_cpi(field_width_us, field_height_us, layer_depth_out_us, filter_size, layer_depth_out, batch_size,
+					"ddot index", ddot_index);
+	print_temp_cpi(field_width_us, field_height_us, layer_depth_out_us, filter_size, layer_depth_out, batch_size,
+					"weight index", weight_index);
+
 	return true;
 }
-*/
+
 template<typename T>
 void print_weights(int ldo, int ld, int fs, std::string s, thrust::device_vector<T> w)
 {

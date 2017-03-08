@@ -20,7 +20,5 @@ int main()
 }
 
 //todo add a verbose mode to the back_prop indices tests
-//the center pixel index is correct for propogate convolutional, work on the weights index
-//then work on fully connected
-//then actually put some numbers through these things
+//todo, run numbers through test kernels
 
