@@ -42,6 +42,20 @@ struct d_sig_from_sig
         }
 };
 
+template <typename T>
+struct ax
+{
+    T a;
+
+    ax(T a) : a(a) {}
+
+    __host__ __device__
+    T operator()(T x) const
+    {
+        return a * x;
+    }
+};
+
 /*
  * binary operator that takes the first argument and multiplies it by the derivative of a sigmoid
  * i.e.

@@ -137,7 +137,7 @@ void sigmoid_activation(double *temp, int field_width, int field_height, int lay
 }
 
 __global__
-void pool_input(double *temp, double *output, int field_width, int field_height, int layer_depth_out, int batch_size)
+void pool_input(double *temp, double *output, int *pool_flag, int field_width, int field_height, int layer_depth_out, int batch_size)
 {
 	int number_of_pixels_per_image = field_width*field_height*layer_depth_out;
 	if (threadIdx.x + blockDim.x * blockIdx.x >= number_of_pixels_per_image * batch_size)
@@ -154,12 +154,23 @@ void pool_input(double *temp, double *output, int field_width, int field_height,
 							pool_x*2;												//columns
 	//perform pooling opertaion
 	double max = temp[temp_index];
+	int index = temp_index;
 	if (temp[temp_index+1] > max)
+	{
 		max = temp[temp_index+1];
+		index = temp_index+1;
+	}
 	if (temp[temp_index + field_width*2] > max)
+	{
 		max = temp[temp_index + field_width*2];
+		index = temp_index + field_width*2;
+	}
 	if (temp[temp_index + field_width*2 + 1] > max)
+	{
 		max = temp[temp_index + field_width*2 + 1];
+		index = temp_index + field_width*2 + 1;
+	}
 	output[pool_index] = max;
+	pool_flag[index] = 1;
 }
 }

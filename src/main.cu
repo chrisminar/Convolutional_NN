@@ -21,15 +21,25 @@ int main()
 	//ntwrk.print_network_info();
 	ntwrk.initialise_layers();
 	io::printDeviceMemoryUsage();
-	ntwrk.run();
-	ntwrk.train_epoch();
+	int count = 0;
+	do
+	{
+		count ++;
+		ntwrk.run();
+		ntwrk.train_epoch();
+		std::cout << "L2 error at iteration " << count << " is " << ntwrk.error << "\n";
+		if (count > 10000)
+			break;
+	}
+	while (ntwrk.isdone());
 
     return 0;
 }
 
 //todo make print info dump to a file
+//todo save/read weights to file
 
-//todo pool flag
+//todo write outputs for backpropogation
 //todo biases
 //todo tests!
 

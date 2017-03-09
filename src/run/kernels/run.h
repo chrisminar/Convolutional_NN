@@ -20,5 +20,5 @@ __global__
 void sigmoid_activation(double *temp, int field_width, int field_height, int layer_depth_out, int batch_size);
 
 __global__
-void pool_input(double *temp, double *output, int field_width, int field_height, int layer_depth_out, int batch_size);
+void pool_input(double *temp, double *output, int *pool_flag, int field_width, int field_height, int layer_depth_out, int batch_size);
 }

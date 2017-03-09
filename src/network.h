@@ -46,12 +46,14 @@ public:
 	//constructor
 	network(image_DB *idb);
 
-	// training
+	//training
 	void train_epoch();
-	void propogate_error_handler(int i);
-	void ddot_handler(int i);
-	void dw_handler(int i);
-	//back_propogate/
+	void propogate_error_handler(bool v, int i);
+	void ddot_handler(bool v, int i);
+	void dw_handler(bool v, int i);
+	bool isdone();
+
+	//back_propogate
 	void initial_ddot(int i);
 	void update_ddot(int i);
 	void dw_conv(int i);
@@ -64,6 +66,11 @@ public:
 
 	//run
 	void run();
+	void run_recast(int i);
+	void run_convolute(bool v, int i);
+	void run_activation(bool v, int i);
+	void run_pool(bool v, int i);
+	void run_softpool(bool v);
 
 	//io
 	void print_network_info();

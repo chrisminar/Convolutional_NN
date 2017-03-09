@@ -44,6 +44,11 @@ void layer::initialise()
 	ddot_r = thrust::raw_pointer_cast( & (ddot[0]) );
 	ddot_temp_r = thrust::raw_pointer_cast( & (ddot_temp[0]) );
 
+	//resize pool flag
+	if (pool)
+		pool_flag.resize(temp.size());
+	pool_flag_r = thrust::raw_pointer_cast( &(pool_flag[0]) );
+
 	//give weights and bias gaussian distribution
 	thrust::host_vector<double> W;
 	thrust::host_vector<double> B;
