@@ -86,7 +86,7 @@ void layer::initialise()
 
 	weights = W;
 	weights_r = thrust::raw_pointer_cast ( &(weights[0]) );
-	thrust::fill(dweight.begin(), dweight.end(), 0.0);
+	//thrust::fill(dweight.begin(), dweight.end(), 0.0);
 	bias = B;
 	bias_r = thrust::raw_pointer_cast ( &(bias[0]) );
 

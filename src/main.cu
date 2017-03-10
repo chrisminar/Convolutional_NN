@@ -11,16 +11,31 @@
 
 int main()
 {
+	//Reset device memory
 	cudaDeviceReset();
+
+	//Print information on gpu
 	//io::print_gpu_data();
+
+	//Initialise image database and network
 	image_DB idb;
 	network ntwrk(&idb);
+
+	//read cifar 10 batch into idb
     io::read_CIFAR10(idb);
+
+    //parse cifar 10 file to initialise the network
 	std::string fname = "/scratch/src/convNet/convNet/validation/CIFAR10.yaml";
 	io::parse_network_file(fname, ntwrk);
 	//ntwrk.print_network_info();
+
+	//initialise layers
 	ntwrk.initialise_layers();
+
+	//print device memory
 	io::printDeviceMemoryUsage();
+
+	//training loop
 	int count = 0;
 	do
 	{
@@ -31,7 +46,7 @@ int main()
 		if (count > 10000)
 			break;
 	}
-	while (ntwrk.isdone());
+	while (!ntwrk.isdone());
 
     return 0;
 }
@@ -41,7 +56,7 @@ int main()
 
 //todo write outputs for backpropogation
 //todo biases
-//todo tests!
+//todo timing functions
 
 //general questions:
 //should weights be positive?

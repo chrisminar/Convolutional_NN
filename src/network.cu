@@ -21,7 +21,7 @@ network::network(image_DB *idb)
 
 void network::train_epoch()
 {
-	bool v = true; //verbose
+	bool v = false; //verbose
 
 	//back propogate throught the nerual network
 	for (int i=layers.size()-1; i>-1; i--) //loop from size-1 to 0
@@ -70,10 +70,6 @@ void network::run()
 
 bool network::isdone()
 {
-	std::cout << target.size() << "\n";
-	std::cout << target[0] << "\n";
-	std::cout << layers[3].layer_output.size() << "\n";
-	std::cout << layers[3].layer_output[0] << "\n";
 	int j = layers.size()-1;
 	double threshold = 0.25;
 	for (int i=0; i<target.size(); i++)
@@ -104,7 +100,6 @@ void network::initialise_layers()
 	//initialse targets
 	target.resize(batch_size * 10);
 	io::generate_target(target, IDB->batch_1_labels_D, batch_size, 0, 10);
-	batch_size = 50;
 
 	//make layers
 	for (int i=0; i<activation_functions.size(); i++)

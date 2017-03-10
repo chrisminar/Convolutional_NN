@@ -71,6 +71,7 @@ void network::dw_handler(bool v, int i)
 	{
 		dw_conv(i);
 	}
+
 	//update weights
 	//update dweight to reflect training rate and momentum: dweight = dweight*trainingrate
 	thrust::transform(layers[i].dweight.begin(), layers[i].dweight.end(),
@@ -126,6 +127,7 @@ void network::dw_conv(int i)
 	const int blocksize = 256;
 	dim3 grid( int((layers[i].filter_size*layers[i].filter_size*layers[i].layer_depth*layers[i].layer_depth_out)/blocksize)+1, 1);
 	dim3 block(blocksize,1);
+	layers[i].dweight_r = thrust::raw_pointer_cast( &(layers[i].dweight[0]) );
 	kernels::calculate_dweight<<<grid,block>>>(layers[i].dweight_r, layers[i].layer_input, layers[i].ddot_r, layers[i].pool_flag_r,
 												layers[i].filter_size, layers[i].field_height, layers[i].field_width,
 												layers[i].layer_depth, layers[i].layer_depth_out, batch_size);
@@ -137,16 +139,17 @@ void network::dw_conv(int i)
 void network::dw_fc(int i)
 {
 	const int blocksize = 256;
-	dim3 grid( int(layers[i].weights.size()/blocksize)+1, 1);
+	dim3 grid( int((layers[i].weights.size() - 0.5)/blocksize)+1, 1);
 	dim3 block(blocksize,1);
-	kernels::calculate_fc_dweight<<<grid,block>>>(layers[i].dweight_r, layers[i].layer_input, layers[i].ddot_r, layers[i].filter_size, layers[i].field_height, layers[i].field_width,
+	layers[i].dweight_r = thrust::raw_pointer_cast( &(layers[i].dweight[0]) );
+	kernels::calculate_fc_dweight<<<grid,block>>>(layers[i].dweight_r, layers[i].layer_input, layers[i].ddot_r, layers[i].field_width, layers[i].field_height, layers[i].field_width,
 													layers[i].layer_depth, layers[i].layer_depth_out, batch_size);
 }
 
 void network::upstream_ddot_fc(int i)
 {
 	const int blocksize = 256;
-	dim3 grid( int((layers[i-1].ddot.size())/blocksize)+1, 1);
+	dim3 grid( int((layers[i-1].ddot.size() - 0.5)/blocksize)+1, 1);
 	dim3 block(blocksize,1);
 	kernels::propogate_ddot_fc<<<grid, block>>>(layers[i].ddot_r, layers[i-1].ddot_r, layers[i].weights_r, layers[i].bias_r,
 												layers[i].field_height, layers[i].field_width, layers[i].layer_depth_out, layers[i].filter_size,
