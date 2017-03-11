@@ -12,60 +12,54 @@
 #include <thrust/functional.h>//keep
 #include <thrust/transform.h>//keep
 
-
 //constructor
 network::network(image_DB *idb)
 {
 	IDB = idb;
+	verbose = false;
+	output = false;
 }
 
 void network::train_epoch()
 {
-	bool v = false; //verbose
-
 	//back propogate throught the nerual network
 	for (int i=layers.size()-1; i>-1; i--) //loop from size-1 to 0
 	{
 		//resize and cast ddot
-		layers[i].ddot_r = thrust::raw_pointer_cast( &(layers[i].ddot[0]) );  //todo this segment can probably be done without coping the output array
+		layers[i].ddot_r = thrust::raw_pointer_cast( &(layers[i].ddot[0]) ); //todo this segment can probably be done without coping the output array
 
 		//calculate deltas at current layer
 		//delta = error at current layer * sigmoid of convoluted (layer input)
 		//dE/dx = dE/dy * sigma'(x)
 		//ddot = ddot * dsig_from_sig(temp)
-		ddot_handler(v, i);
+		ddot_handler(i);
 
 		//calculate weight gradiants at current layer
 		//weight delta(delta, layer input)
 		//dE/dw(dE/dx, y^l-1)
 		//dw(ddot, layer_input)
-		dw_handler(v, i);
+		dw_handler(i);
 
 		//propogate error up the network
 		//previous layer delta = convolute(change in error from previous layer output, weights)
 		//dE/dy^l-1 = convolute(dE/dx, weights)
 		//ddot^l-1 = convolute(dE/d(convoluted input from this layer(not temp, but the thing between input and temp), weights)
-		propogate_error_handler(v, i);
+		propogate_error_handler(i);
 	}
-
 }
 
 //run the network
 void network::run()
 {
-
-	bool v = false; //verbose
-
 	int i;
 	for (i=0; i < layers.size(); i++)
 	{
 		run_recast(i);
-		run_convolute(v, i);
-		run_activation(v, i);
-		run_pool(v, i);
+		run_convolute(i);
+		run_activation(i);
+		run_pool(i);
 	}
-	run_softpool(v);
-
+	run_softpool();
 }
 
 bool network::isdone()
@@ -80,9 +74,7 @@ bool network::isdone()
 		}
 	}
 	return true;
-
 }
-
 
 void network::initialise_layers()
 {
@@ -139,7 +131,8 @@ void network::initialise_layers()
 	{
 		if (i != layers.size() - 1)
 			layers[i].next_layer = &layers[i+1];
-		//layers[i].print_metadata();
+		if (output and verbose)
+			layers[i].print_metadata();
 	}
 }
 

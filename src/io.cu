@@ -25,6 +25,20 @@ const int number_of_images = 10000;
 const int n_rows = 32;
 const int n_cols = 32;
 
+
+void command_line_parse(int argc, char **argv, network &N)
+{
+	for (int i=1; i<argc; i++)
+	{
+		if (strcmp(argv[i],"-o")==0)
+		{
+			N.output = true;
+		}
+		if (strcmp(argv[i],"-v")==0)
+			N.verbose = true;
+	}
+}
+
 //read data from a cifar-10 file
 void read_batch(std::string filename, thrust::host_vector<double> &images, thrust::host_vector<int> &labels)
 {
@@ -266,7 +280,7 @@ void print_temp(int number_of_images, int image_start, layer &layerin, std::stri
 	std::ofstream myfile;
 	std::string folder = "/scratch/src/convNet/convNet";
 	std::stringstream out;
-	std::stringstream convert; convert << "/output/temp_" <<s<<layerin.layer_position<< ":"<<image_start<<"-"<<image_start+number_of_images<<".csv";
+	std::stringstream convert; convert << "/output/" <<s<<"_layer:"<<layerin.layer_position<< "_image:"<<image_start<<"-"<<image_start+number_of_images<<".csv";
 	std::string folder_name = convert.str();
 	out<<folder<<folder_name;
 	myfile.open(out.str().c_str());
@@ -313,7 +327,7 @@ void print_weights(layer &layerin)
 	std::ofstream myfile;
 	std::string folder = "/scratch/src/convNet/convNet";
 	std::stringstream out;
-	std::stringstream convert; convert << "/output/weights_" <<layerin.layer_position<< ".csv";
+	std::stringstream convert; convert << "/output/weights"<<"_layer:"<<layerin.layer_position<<".csv";
 	std::string folder_name = convert.str();
 	out<<folder<<folder_name;
 	myfile.open(out.str().c_str());
@@ -348,7 +362,7 @@ void print_output(int number_of_images, int image_start, layer &layerin, std::st
 	std::ofstream myfile;
 	std::string folder = "/scratch/src/convNet/convNet";
 	std::stringstream out;
-	std::stringstream convert; convert << "/output/output_" <<s<<layerin.layer_position<< ":"<<image_start<<"-"<<image_start+number_of_images<<".csv";
+	std::stringstream convert; convert << "/output/"  <<s<<"_layer:"<<layerin.layer_position<< "_image:"<<image_start<<"-"<<image_start+number_of_images<<".csv";
 	std::string folder_name = convert.str();
 	out<<folder<<folder_name;
 	myfile.open(out.str().c_str());

@@ -63,6 +63,7 @@ void layer::initialise()
 		n = filter_size*filter_size*layer_depth;
 		for (int i=0; i < W.size(); i++)
 		{
+			num = distribution(generator);
 			W[i] = abs(num/n);
 		}
 	}

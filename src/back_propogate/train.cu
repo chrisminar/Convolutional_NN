@@ -16,9 +16,9 @@
  * dE/dy^l-1 = convolute(dE/dx, weights)
  * ddot^l-1 = convolute(dE/d(convoluted input from this layer(not temp, but the thing between input and temp), weights)
  */
-void network::propogate_error_handler(bool v, int i)
+void network::propogate_error_handler(int i)
 {
-	if (v)
+	if (verbose)
 		std::cout << "Propogating ddot from layer" << i << "\n";
 
 	//if we are on a fully connected layer, upstream shouldn't be convoluted for
@@ -39,9 +39,9 @@ void network::propogate_error_handler(bool v, int i)
  * dE/dx = dE/dy * sigma'(x)
  * ddot = ddot * dsig_from_sig(temp)
  */
-void network::ddot_handler(bool v, int i)
+void network::ddot_handler(int i)
 {
-	if (v)
+	if (verbose)
 		std::cout << "Calculating ddot from layer" << i << "\n";
 	//if we are on the output layer, we need to calculate the initial ddot
 	if (layers[i].lyr_typ == OUTPUT)
@@ -58,9 +58,9 @@ void network::ddot_handler(bool v, int i)
  * dE/dw(dE/dx, y^l-1)
  * dw(ddot, layer_input)
  */
-void network::dw_handler(bool v, int i)
+void network::dw_handler(int i)
 {
-	if (v)
+	if (verbose)
 		std::cout << "Calculating dweight from layer" << i << "\n";
 	//if were at a fully connected layer
 	if (layers[i].lyr_conv == FULLY_CONNECTED)

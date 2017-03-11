@@ -5,78 +5,78 @@
  */
 
 #include "run.h"
-
+#include <stdio.h> //used for printf
 namespace kernels
 {
-__global__//todo I'm suspicious of this kernels indexing, looping over layer depth and layer depth out seems wrong
-void convolute(double *input, double *temp, double *weights, double *bias, int field_width, int field_height,
-		int stride_x, int stride_y, int zero_pad_x, int zero_pad_y, int filter_size, int batch_size, int layer_depth, int layer_depth_out)
+__global__
+void convolute(double *input, double *temp, double *weights, double *bias,
+				int field_width, int field_height,
+				int stride_x, int stride_y, int zero_pad_x, int zero_pad_y,
+				int filter_size, int batch_size, int layer_depth, int layer_depth_out)
 {
 	//todo currently some parts assume the x-y symmetry
-	//todo currently handles zero-pad oddly
+	//todo stride isn't used
+	//todo zero pad is automatically set such that the output is the same size as the input
+	//todo not sure if this will work with a filter size other than 3
+
+	//some useful numbers
+	int num_pixels_per_layer = field_width*field_height,
+		num_pixels_per_image = num_pixels_per_layer*layer_depth_out;
 
 	//figure out where this kernel is
-	int number_of_filters_per_width = ((field_width - filter_size + 2*zero_pad_x)/stride_x + 1),			//number of filters in each row of a lyer
-		number_of_filters_per_input = number_of_filters_per_width*number_of_filters_per_width,				//number of filters in one layer
-		total_filter_number = threadIdx.x + blockDim.x * blockIdx.x,										//filter number (no reset)
-		image_number = total_filter_number/(number_of_filters_per_input*layer_depth),						//image number were on
-		filter_number = total_filter_number%(number_of_filters_per_input),									//filter number in the layer
-		filter_x = filter_number % field_width,																//filter number of column in layer
-		filter_y = filter_number / field_width;																//filter number of row in layer
+	int temp_index = threadIdx.x + blockDim.x * blockIdx.x,
+		image_number = temp_index / (num_pixels_per_image),
+		image_index = temp_index % (num_pixels_per_image),
+		layer_out_number = image_index / (num_pixels_per_layer),
+		layer_out_index = image_index % (num_pixels_per_layer),
+		field_x = layer_out_index % field_width,
+		field_y = layer_out_index / field_width;
+
 	//if were outside of the minibatch range return
-	if (total_filter_number >= number_of_filters_per_input * layer_depth * batch_size)
+	if (temp_index >= num_pixels_per_image * batch_size)
 		return;
 
 	//setup dot product
 	//this if statement causes crazy divergence
 	double sum = 0;
-	int center_pixel_index = 0;
-	int weight_index = 0;
-	//the weight is going to be filter_size x filter_size x layer depth_in. There is one weight for each output layer
-	//loop over output depth
-	int filter_half = filter_size/2;
-	for (int m=0; m<layer_depth_out; m++)
+	int	center_pixel_index = 0,
+		weight_index = 0,
+		filter_half = filter_size/2;
+	//loop over input depth
+	for (int k=0; k<layer_depth; k++)
 	{
-		//loop over input depth
-		for (int k=0; k<layer_depth; k++)
+		//loop over filter_x
+		for (int i=-filter_size/2; i<=filter_half; i++)
 		{
-			//loop over filter_x
-			for (int i=-filter_size/2; i<filter_half; i++)
+			//loop over filter_y
+			for (int j=-filter_size/2; j<=filter_half; j++)
 			{
-				//loop over filter_y
-				for (int j=-filter_size/2; j<filter_half; j++)
+				//check if we are at a boundary
+				if (field_x + i < 0)
+				{}//we're off the left side of the image, do nothing
+				else if (field_x + i >= field_width-1)
+				{}//we're off the right side of the image
+				else if (field_y + j < 0)
+				{}//off the bottom
+				else if (field_y + j >= field_height-1)
+				{}//off the top
+				else
 				{
-					//check if we are at a boundary
-					if (filter_x + i < 0)
-					{
-						//we're off the left side of the image, do nothing
-					}
-					else if (filter_x + i >= field_width-1)
-					{
-						//we're off the right side of the image, this doesn't really account for stride
-					}
-					else if (filter_y + j < 0)
-					{
-						//off the bottom
-					}
-					else if (filter_y + j >= field_height-1)
-					{
-						//off the top
-					}
-					else
-					{
-						//otherwise we have no zero-padding required, dot product away
-						//	pixels from...                      past images							        past layers              past rows         past columns
-						center_pixel_index = image_number*field_width*field_height*layer_depth +  field_width*field_height*k + field_width*filter_y + filter_x; //note this only works if stride is one with approp zero-padding
-						weight_index = filter_size*filter_size*layer_depth*m +  k*filter_size*filter_size + filter_size*(j+filter_half) + (i+filter_half);
-						sum += input[center_pixel_index + j*field_width + i] * weights[weight_index];
-					}//endif
-				}//endj
-			}//endi
-		}//endk
-		temp[image_number*field_width*field_height*layer_depth_out + field_width*field_height*m + field_width * filter_y + filter_x] = sum + bias[m];
-		sum = 0;
-	}//endm*/
+					//otherwise we have no zero-padding required, dot product away
+					center_pixel_index = image_number * field_width*field_height*layer_depth + //past images
+											k * field_width*field_height +						//layers
+											field_y * field_width +								//rows
+											field_x;											//cols
+					weight_index = layer_out_number * filter_size*filter_size*layer_depth +
+									k*filter_size*filter_size +
+									filter_size*(j+filter_half) +
+									(i+filter_half);
+					sum += input[center_pixel_index + j*field_width + i] * weights[weight_index];
+				}//endif
+			}//endj
+		}//endi
+	}//endk
+	temp[temp_index] = sum + bias[image_number];
 }
 
 __global__

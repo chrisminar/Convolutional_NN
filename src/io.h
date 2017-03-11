@@ -15,6 +15,7 @@
 namespace io
 {
 
+void command_line_parse(int argc, char **argv, network &N);
 void read_batch(std::string filename, thrust::host_vector<double> &vec, thrust::host_vector<int> &label);
 std::string CIFAR10_int_to_class(unsigned int value);
 void generate_target(thrust::device_vector<double> &target, thrust::device_vector<int> &label,
