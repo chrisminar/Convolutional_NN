@@ -106,7 +106,7 @@ void network::run_pool(int i)
 		std::cout<<"printing output from layer " << i <<std::endl;
 		io::print_output(1,0,layers[i],"pooled_output");
 		std::cout<<"printing weights from layer " << i <<std::endl;
-		io::print_weights(layers[i]);
+		io::print_weights(layers[i], "weights");
 	}
 }
 

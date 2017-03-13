@@ -222,17 +222,15 @@ void print_gpu_data()
 }
 
 //print the input to a layer to file
-void print_input(int number_of_images, int image_start, layer &layerin, image_DB &IDB)
+void print_input(int number_of_images, int fw, int fh, int ld, thrust::device_vector<double> input, std::string s)
 {
-	int pos = 0,
-		fw = layerin.field_width,
-		fh = layerin.field_height,
-		ld = layerin.layer_depth;
+	int pos = 0;
 	//setup fstream
 	std::ofstream myfile;
 	std::string folder = "/scratch/src/convNet/convNet";
 	std::stringstream out;
-	std::stringstream convert; convert << "/output/" <<layerin.layer_position<< ":"<<image_start<<"-"<<image_start+number_of_images<<".csv";
+	std::stringstream convert; convert << "/output/" <<s<<":_image:"<<"0 - "<<number_of_images<<".csv";
+
 	std::string folder_name = convert.str();
 	out<<folder<<folder_name;
 	myfile.open(out.str().c_str());
@@ -247,7 +245,7 @@ void print_input(int number_of_images, int image_start, layer &layerin, image_DB
 				for (int i=0; i<fw; i++) //loop though cols
 				{
 					pos = m*fw*fh*ld + k*fw*fh + fw*j + i;
-					myfile << IDB.batch_1[pos] << ", ";
+					myfile << input[pos] << ", ";
 				}
 				myfile << "\n";
 			}
@@ -307,8 +305,55 @@ void print_temp(int number_of_images, int image_start, layer &layerin, std::stri
 	}
 }
 
+//print the temp of a layer to file
+void print_ddot(int number_of_images, int image_start, layer &layerin, std::string s)
+{
+	int pos = 0,
+		fw,
+		fh,
+		ld;
+	if (layerin.lyr_conv == FULLY_CONNECTED)
+	{
+		fw = layerin.field_width_out;
+		fh = layerin.field_height_out;
+		ld = layerin.layer_depth_out;
+	}
+	else
+	{
+		fw = layerin.field_width;
+		fh = layerin.field_height;
+		ld = layerin.layer_depth_out;
+	}
+
+	//setup fstream
+	std::ofstream myfile;
+	std::string folder = "/scratch/src/convNet/convNet";
+	std::stringstream out;
+	std::stringstream convert; convert << "/output/" <<s<<"_layer:"<<layerin.layer_position<< "_image:"<<"0-"<<number_of_images<<".csv";
+	std::string folder_name = convert.str();
+	out<<folder<<folder_name;
+	myfile.open(out.str().c_str());
+	for (int m=0; m < number_of_images; m++) //loop though images
+	{
+		myfile << "\nImage number: "<<m<<std::endl;
+		for (int k=0; k<ld; k++) //loop through layers
+		{
+			myfile << "Layer number: "<<k<<std::endl;
+			for (int j=0; j< fh; j++) //loop through rows
+			{
+				for (int i=0; i<fw; i++) //loop though cols
+				{
+					pos = m*fw*fh*ld + k*fw*fh + fw*j + i;
+					myfile << layerin.ddot[pos] << ", ";
+				}
+				myfile << "\n";
+			}
+		}
+	}
+}
+
 //print the layer weights to a file
-void print_weights(layer &layerin)
+void print_weights(layer &layerin, std::string s)
 {
 	int pos = 0,
 		ldo = layerin.layer_depth_out,
@@ -327,7 +372,7 @@ void print_weights(layer &layerin)
 	std::ofstream myfile;
 	std::string folder = "/scratch/src/convNet/convNet";
 	std::stringstream out;
-	std::stringstream convert; convert << "/output/weights"<<"_layer:"<<layerin.layer_position<<".csv";
+	std::stringstream convert; convert << "/output/"<<s<<"_layer:"<<layerin.layer_position<<".csv";
 	std::string folder_name = convert.str();
 	out<<folder<<folder_name;
 	myfile.open(out.str().c_str());
@@ -343,6 +388,48 @@ void print_weights(layer &layerin)
 				{
 					pos = m*fs*fs*ld + k*fs*fs + fs*j + i;
 					myfile << layerin.weights[pos] << ", ";
+				}
+				myfile << "\n";
+			}
+		}
+	}
+}
+
+void print_dw(layer &layerin)
+{
+	int pos = 0,
+		ldo = layerin.layer_depth_out,
+		ld = layerin.layer_depth,
+		fs;
+	if (layerin.lyr_conv == FULLY_CONNECTED)
+	{
+		fs = layerin.field_width;
+	}
+	else
+	{
+		fs = layerin.filter_size;
+	}
+
+	//setup fstream
+	std::ofstream myfile;
+	std::string folder = "/scratch/src/convNet/convNet";
+	std::stringstream out;
+	std::stringstream convert; convert << "/output/dw"<<"_layer:"<<layerin.layer_position<<".csv";
+	std::string folder_name = convert.str();
+	out<<folder<<folder_name;
+	myfile.open(out.str().c_str());
+	for (int m=0; m < ldo; m++) //loop though layer depth out
+	{
+		myfile << "\nLayer out number: "<<m<<std::endl;
+		for (int k=0; k<ld; k++) //loop through layer depth in
+		{
+			myfile << "Layer in number: "<<k<<std::endl;
+			for (int j=0; j< fs; j++) //loop through rows
+			{
+				for (int i=0; i<fs; i++) //loop though cols
+				{
+					pos = m*fs*fs*ld + k*fs*fs + fs*j + i;
+					myfile << layerin.dweight[pos] << ", ";
 				}
 				myfile << "\n";
 			}

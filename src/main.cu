@@ -35,7 +35,6 @@ int main(int argc, char **argv)
 	ntwrk.initialise_layers();
 
 	//print device memory
-
 	io::printDeviceMemoryUsage();
 
 	//training loop
@@ -49,8 +48,8 @@ int main(int argc, char **argv)
 		if (count > 10000)
 			break;
 	}
-	//while (count < 1);
-	while (!ntwrk.isdone());
+	while (count < 1);
+	//while (!ntwrk.isdone());
 
     return 0;
 }

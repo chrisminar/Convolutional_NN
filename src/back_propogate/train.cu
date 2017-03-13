@@ -9,6 +9,7 @@
 #include <thrust/transform.h>
 #include <thrust/transform_reduce.h>
 #include <thrust/functional.h>
+#include <io.h>
 
 /*
  * propogate error up the network
@@ -31,6 +32,11 @@ void network::propogate_error_handler(int i)
 	{
 		upstream_ddot_conv(i);
 	}
+	if (output)
+	{
+		std::cout<<"printing ddot propogation \n";
+
+	}
 }
 
 /*
@@ -50,6 +56,11 @@ void network::ddot_handler(int i)
 	}
 	//once we have the initial ddot, apply the transformation
 	update_ddot(i);
+	if (output)
+	{
+		std::cout<<"printing ddot \n";
+		io::print_ddot(1,0, layers[i], "ddot");
+	}
 }
 
 /*
@@ -83,6 +94,13 @@ void network::dw_handler(int i)
 						layers[i].dweight.begin(),
 						layers[i].weights.begin(),
 						thrust::minus<double>());
+	if (output)
+	{
+		std::cout<<"printing dweight\n";
+		io::print_dw(layers[i]);
+		std::cout<<"printing updated weights\n";
+		io::print_weights(layers[i], "updated weights");
+	}
 }
 
 /*
@@ -94,10 +112,12 @@ void network::initial_ddot(int i)
 	//note, can't handle FC with pooling
 	//note I think this can only handle the last layer, possibly not all FC layers
 	//ddot = network output - target
+	std::cout<<layers[3].ddot[0]<<"\n";
 	thrust::transform(layers[i].layer_output.begin(), layers[i].layer_output.end(), //iterate over layer_output
 						target.begin(), 											//subtract target
 						layers[i].ddot.begin(), 									//place results in ddot
 						thrust::minus<double>());									//subtract operator
+	std::cout<<layers[3].ddot[0]<<"\n";
 
 	//Calculate L2 error: sum(ddot^2)
 	kernels::square<double> unary_op;
@@ -106,8 +126,7 @@ void network::initial_ddot(int i)
 									unary_op,										//square ddot
 									0.0,											//start sum at 0
 									binary_op);										//reduction sum
-	//std::cout<<layers[i].ddot.size()<<std::endl;
-	//std::cout<<error<<std::endl;
+	std::cout<<layers[3].ddot[0]<<"\n";
 }
 
 /*

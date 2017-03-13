@@ -21,11 +21,14 @@ std::string CIFAR10_int_to_class(unsigned int value);
 void generate_target(thrust::device_vector<double> &target, thrust::device_vector<int> &label,
 		int batch_size, int start_image, int num_class);
 void read_CIFAR10(image_DB &idb);
+
 void print_gpu_data();
 void parse_network_file(std::string fname, network &N);
-void print_input(int number_of_images, int image_start, layer &layerin, image_DB &IDB);
+void print_input(int number_of_images, int fw, int fh, int ld, thrust::device_vector<double> input, std::string s);
 void print_temp(int number_of_images, int image_start, layer &layerin, std::string s);
-void print_weights(layer &layerin);
+void print_ddot(int number_of_images, int image_start, layer &layerin, std::string s);
+void print_weights(layer &layerin, std::string s);
+void print_dw(layer &layerin);
 void print_output(int number_of_images, int image_start, layer &layerin, std::string s);
 void printDeviceMemoryUsage();
 
