@@ -53,7 +53,7 @@ void network::run_convolute(int i)
 	if (output)
 	{
 		std::cout<<"printing conv from layer " << i <<std::endl;
-		io::print_temp(1,0, layers[i], "convolute");
+		io::print_temp(1,0, layers[i], "0_convolute");
 	}
 }
 
@@ -74,7 +74,7 @@ void network::run_activation(int i)
 	if (output)
 	{
 		std::cout<<"printing sigm from layer " << i <<std::endl;
-		io::print_temp(1,0, layers[i], "sigmoid_activation");
+		io::print_temp(1,0, layers[i], "1_sigmoid_activation");
 	}
 }
 
@@ -104,9 +104,9 @@ void network::run_pool(int i)
 	if (output)
 	{
 		std::cout<<"printing output from layer " << i <<std::endl;
-		io::print_output(1,0,layers[i],"pooled_output");
+		io::print_output(1,0,layers[i],"3_pooled_output");
 		std::cout<<"printing weights from layer " << i <<std::endl;
-		io::print_weights(layers[i], "weights");
+		io::print_weights(layers[i], "2_weights");
 	}
 }
 

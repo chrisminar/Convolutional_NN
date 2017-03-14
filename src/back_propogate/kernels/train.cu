@@ -5,6 +5,7 @@
  */
 
 #include "train.h"
+#include <stdio.h>
 
 namespace kernels
 {
@@ -53,11 +54,11 @@ void calculate_dweight(double *dweight, double *input, double *ddot, int *pool_f
 					flag = 0;
 				else
 					flag = 1;
-				sum += input[input_index] * ddot[ddot_index] * flag * pool_flag[i];
+				sum += input[input_index] * ddot[ddot_index] * flag * pool_flag[input_index];
 			}
 		}
 	}
-	dweight[weight_index] = sum;
+	dweight[weight_index] = sum/batch_size; //todo is averaging over batch size ok??
 }
 
 //can't handle things that are not 1x1xsomething
@@ -97,7 +98,7 @@ void calculate_fc_dweight(double *dweight, double *input, double *ddot,
 						layer_x;
 		sum += input[input_index] * ddot[ddot_index];
 	}
-	dweight[weight_index] = sum;
+	dweight[weight_index] = sum/batch_size; //todo the sum is way to large, not sure if dividing by batch_Size is ok?
 }
 
 __global__
@@ -184,10 +185,10 @@ void propogate_ddot_conv(double *ddot, double *ddot_upstream, double *weights, d
 								field_y*field_height/field_height_us*field_width +	// rows
 								field_x*field_width/field_height_us;					// columns
 		//loop over filter_y
-		for (int j=-filter_size/2; j<filter_half; j++)
+		for (int j=-filter_size/2; j<=filter_half; j++)
 		{
 			//loop over filter_x
-			for (int i=-filter_size/2; i<filter_half; i++)
+			for (int i=-filter_size/2; i<=filter_half; i++)
 			{
 				//check if we are at a boundary to account for zero padding
 				//     						 left                         				  right
@@ -201,7 +202,7 @@ void propogate_ddot_conv(double *ddot, double *ddot_upstream, double *weights, d
 											layer_us_number*filter_size*filter_size +				// layer in
 											filter_size*filter_size - 1 -							// maximum filter layer
 											filter_size*(j+filter_half) -							// filter rows
-											(i+filter_half);								// filter columns note: each filter is rotated by 180, which is why we go the the max of the filter layer then subtract off
+											(i+filter_half);										// filter columns note: each filter is rotated by 180, which is why we go the the max of the filter layer then subtract off
 					sum += ddot[center_pixel_index + j*field_width + i] * weights[weight_index];
 				}//endif
 			}//endi

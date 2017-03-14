@@ -28,7 +28,7 @@ void print_input(int number_of_images, int fw, int fh, int ld, thrust::device_ve
 void print_temp(int number_of_images, int image_start, layer &layerin, std::string s);
 void print_ddot(int number_of_images, int image_start, layer &layerin, std::string s);
 void print_weights(layer &layerin, std::string s);
-void print_dw(layer &layerin);
+void print_dw(layer &layerin, std::string s);
 void print_output(int number_of_images, int image_start, layer &layerin, std::string s);
 void printDeviceMemoryUsage();
 

@@ -35,6 +35,8 @@ void network::propogate_error_handler(int i)
 	if (output)
 	{
 		std::cout<<"printing ddot propogation \n";
+		if (i!=0)
+			io::print_ddot(1, 0, layers[i-1], "8_ddot_us");
 
 	}
 }
@@ -59,7 +61,7 @@ void network::ddot_handler(int i)
 	if (output)
 	{
 		std::cout<<"printing ddot \n";
-		io::print_ddot(1,0, layers[i], "ddot");
+		io::print_ddot(1,0, layers[i], "4_ddot");
 	}
 }
 
@@ -83,6 +85,12 @@ void network::dw_handler(int i)
 		dw_conv(i);
 	}
 
+	if (output)
+	{
+		std::cout<<"printing pre training rate dweight\n";
+		io::print_dw(layers[i], "5_dw_pre");
+	}
+
 	//update weights
 	//update dweight to reflect training rate and momentum: dweight = dweight*trainingrate
 	thrust::transform(layers[i].dweight.begin(), layers[i].dweight.end(),
@@ -97,9 +105,9 @@ void network::dw_handler(int i)
 	if (output)
 	{
 		std::cout<<"printing dweight\n";
-		io::print_dw(layers[i]);
+		io::print_dw(layers[i], "6_dw");
 		std::cout<<"printing updated weights\n";
-		io::print_weights(layers[i], "updated weights");
+		io::print_weights(layers[i], "7_updated weights");
 	}
 }
 
@@ -112,12 +120,10 @@ void network::initial_ddot(int i)
 	//note, can't handle FC with pooling
 	//note I think this can only handle the last layer, possibly not all FC layers
 	//ddot = network output - target
-	std::cout<<layers[3].ddot[0]<<"\n";
 	thrust::transform(layers[i].layer_output.begin(), layers[i].layer_output.end(), //iterate over layer_output
 						target.begin(), 											//subtract target
 						layers[i].ddot.begin(), 									//place results in ddot
 						thrust::minus<double>());									//subtract operator
-	std::cout<<layers[3].ddot[0]<<"\n";
 
 	//Calculate L2 error: sum(ddot^2)
 	kernels::square<double> unary_op;
@@ -126,7 +132,6 @@ void network::initial_ddot(int i)
 									unary_op,										//square ddot
 									0.0,											//start sum at 0
 									binary_op);										//reduction sum
-	std::cout<<layers[3].ddot[0]<<"\n";
 }
 
 /*
@@ -180,6 +185,7 @@ void network::upstream_ddot_conv(int i)
 	const int blocksize = 256;
 	dim3 block(blocksize,1);
 	dim3 grid( int((layers[i-1].ddot.size())/blocksize)+1, 1);
+	layers[i-1].ddot_r = thrust::raw_pointer_cast( &(layers[i-1].ddot[0]) );
 	if (i!=0)
 	{
 		kernels::propogate_ddot_conv<<<grid, block>>>(layers[i].ddot_r, layers[i-1].ddot_r, layers[i].weights_r, layers[i].bias_r,

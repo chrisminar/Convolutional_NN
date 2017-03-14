@@ -33,21 +33,18 @@ void network::train_epoch()
 		//dE/dx = dE/dy * sigma'(x)
 		//ddot = ddot * dsig_from_sig(temp)
 		ddot_handler(i);
-		std::cout<<layers[3].ddot[0]<<"\n";
 
 		//calculate weight gradiants at current layer
 		//weight delta(delta, layer input)
 		//dE/dw(dE/dx, y^l-1)
 		//dw(ddot, layer_input)
 		dw_handler(i);
-		std::cout<<layers[3].ddot[0]<<"\n";
 
 		//propogate error up the network
 		//previous layer delta = convolute(change in error from previous layer output, weights)
 		//dE/dy^l-1 = convolute(dE/dx, weights)
 		//ddot^l-1 = convolute(dE/d(convoluted input from this layer(not temp, but the thing between input and temp), weights)
 		propogate_error_handler(i);
-		std::cout<<layers[3].ddot[0]<<"\n";
 	}
 }
 

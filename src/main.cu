@@ -45,11 +45,16 @@ int main(int argc, char **argv)
 		ntwrk.run();
 		ntwrk.train_epoch();
 		std::cout << "L2 error at iteration " << count << " is " << ntwrk.error << "\n";
-		if (count > 10000)
+		if (count > 100000)
 			break;
+		if (count % 10000 == 0)
+		{
+			for (int j=0;j<10;j++)
+				std::cout<<ntwrk.target[j]<< " "<<ntwrk.layers[3].layer_output[j]<<"\n";
+		}
 	}
-	while (count < 1);
-	//while (!ntwrk.isdone());
+	//while (count < 1);
+	while (!ntwrk.isdone());
 
     return 0;
 }
@@ -57,10 +62,13 @@ int main(int argc, char **argv)
 //todo make print info dump to a file
 //todo set up verbosity in argparse
 
-//todo write outputs for backpropogation
 //todo biases
 //todo save/read weights to file
+//todo better momentum and training weight handleing
+//todo multiple batches
+//todo testing suite once thing has been run
 //todo timing functions
+//todo speedup
 
 //general questions:
 //should weights be positive?

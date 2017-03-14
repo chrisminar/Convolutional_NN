@@ -395,7 +395,7 @@ void print_weights(layer &layerin, std::string s)
 	}
 }
 
-void print_dw(layer &layerin)
+void print_dw(layer &layerin, std::string s)
 {
 	int pos = 0,
 		ldo = layerin.layer_depth_out,
@@ -414,7 +414,7 @@ void print_dw(layer &layerin)
 	std::ofstream myfile;
 	std::string folder = "/scratch/src/convNet/convNet";
 	std::stringstream out;
-	std::stringstream convert; convert << "/output/dw"<<"_layer:"<<layerin.layer_position<<".csv";
+	std::stringstream convert; convert << "/output/"<<s<<"_layer:"<<layerin.layer_position<<".csv";
 	std::string folder_name = convert.str();
 	out<<folder<<folder_name;
 	myfile.open(out.str().c_str());
