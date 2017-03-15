@@ -20,6 +20,54 @@ network::network(image_DB *idb)
 	output = false;
 }
 
+void network::train_batch_1()
+{
+	int count = 0;
+	while (count*batch_size < 10000)
+	{
+		std::cout << "Starting batch " << count+1 << "\n";
+		//load new mini batch
+		if (count > 0)
+			load_batch(count);
+
+		//train mini batch
+		train_batch();
+
+		count ++;
+	}
+}
+
+void network::load_batch(int batch_num)
+{
+	int start_index = layers[0].field_width*layers[0].field_height*layers[0].layer_depth*batch_size*batch_num;
+	mini_batch_r = thrust::raw_pointer_cast( &(IDB->batch_1_D[start_index]) );
+	mini_batch_label_r = thrust::raw_pointer_cast( &(IDB->batch_1_labels_D[start_index]) );
+	io::generate_target(target, IDB->batch_1_labels_D, batch_size, batch_num*batch_size, 10);
+	layers[0].layer_input = mini_batch_r;
+}
+
+void network::train_batch()
+{
+	//training loop
+	int count = 0;
+	do
+	{
+		count ++;
+		run();
+		train_epoch();
+		if (count % 10000 == 0)
+		{
+			std::cout << "L2 error at iteration " << count << " is " << error << "\n";
+			for (int j=0;j<10;j++)
+				{std::cout<<target[j]<< " "<<layers[layers.size()-1].layer_output[j]<<"\n";}
+			if (count > 100000)
+				{break;}
+		}
+	}
+	while (!isdone());
+	std::cout << "\tbatch trained in " << count << " iterations\n";
+}
+
 void network::train_epoch()
 {
 	//back propogate throught the nerual network
@@ -73,6 +121,7 @@ bool network::isdone()
 			return false;
 		}
 	}
+	std::cout<< abs(layers[j].layer_output[0] - target[0]) << " " << layers[j].layer_output[0] << " " << target[0] << "\n";
 	return true;
 }
 
@@ -83,7 +132,7 @@ void network::initialise_layers()
 	IDB->batch_1_labels_D = IDB->batch_1_labels;
 	IDB->training_D = IDB->training;
 	IDB->training_labels_D = IDB->training_labels;
-	//creat pointers
+	//create pointers
 	mini_batch_r = thrust::raw_pointer_cast( &(IDB->batch_1_D[0]) );
 	test_data_r = thrust::raw_pointer_cast( &(IDB->training_D[0]) );
 	mini_batch_label_r = thrust::raw_pointer_cast( &(IDB->batch_1_labels_D[0]) );

@@ -37,24 +37,7 @@ int main(int argc, char **argv)
 	//print device memory
 	io::printDeviceMemoryUsage();
 
-	//training loop
-	int count = 0;
-	do
-	{
-		count ++;
-		ntwrk.run();
-		ntwrk.train_epoch();
-		std::cout << "L2 error at iteration " << count << " is " << ntwrk.error << "\n";
-		if (count > 100000)
-			break;
-		if (count % 10000 == 0)
-		{
-			for (int j=0;j<10;j++)
-				std::cout<<ntwrk.target[j]<< " "<<ntwrk.layers[3].layer_output[j]<<"\n";
-		}
-	}
-	//while (count < 1);
-	while (!ntwrk.isdone());
+	ntwrk.train_batch_1();
 
     return 0;
 }
@@ -69,6 +52,7 @@ int main(int argc, char **argv)
 //todo testing suite once thing has been run
 //todo timing functions
 //todo speedup
+//todo make functions to test weights over the trianing data
 
 //general questions:
 //should weights be positive?

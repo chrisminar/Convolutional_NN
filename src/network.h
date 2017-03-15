@@ -40,7 +40,7 @@ public:
 		zero_pad_y,													//layer y padding
 		filter_size,												//the size of the convolutional filter to use
 		batch_size;													//the number of images to train on
-	double learning_rate,
+	double	learning_rate,
 			error;
 
 	bool	verbose,
@@ -50,6 +50,9 @@ public:
 	network(image_DB *idb);
 
 	//training
+	void train_batch_1();
+	void load_batch(int batch_num);
+	void train_batch();
 	void train_epoch();
 	void propogate_error_handler(int i);
 	void ddot_handler(int i);
