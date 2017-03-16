@@ -37,13 +37,16 @@ int main(int argc, char **argv)
 	//print device memory
 	io::printDeviceMemoryUsage();
 
+	//read weights
+	//if (ntwrk.write)
+	//	ntwrk.read_weight_binary();
+
 	ntwrk.train_batch_1();
 
     return 0;
 }
 
 //todo make print info dump to a file
-//todo set up verbosity in argparse
 
 //todo biases
 //todo save/read weights to file

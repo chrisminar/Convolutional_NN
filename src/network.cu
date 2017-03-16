@@ -7,6 +7,8 @@
 #include "io.h"
 #include "network.h"
 #include <vector>
+#include <iostream>
+#include <fstream>
 #include "back_propogate/kernels/train.h"
 #include <thrust/extrema.h>//keep
 #include <thrust/functional.h>//keep
@@ -18,6 +20,7 @@ network::network(image_DB *idb)
 	IDB = idb;
 	verbose = false;
 	output = false;
+	write = false;
 }
 
 void network::train_batch_1()
@@ -32,6 +35,9 @@ void network::train_batch_1()
 
 		//train mini batch
 		train_batch();
+
+		//write weights
+		write_weight_binary();
 
 		count ++;
 	}
@@ -57,10 +63,8 @@ void network::train_batch()
 		train_epoch();
 		if (count % 10000 == 0)
 		{
-			std::cout << "L2 error at iteration " << count << " is " << error << "\n";
-			for (int j=0;j<10;j++)
-				{std::cout<<target[j]<< " "<<layers[layers.size()-1].layer_output[j]<<"\n";}
-			if (count > 100000)
+			std::cout << "L2 error at iteration " << count << " is " << error << "\t Break error is " << break_error << "\n";
+			if (count >= 100000)
 				{break;}
 		}
 	}
@@ -118,6 +122,7 @@ bool network::isdone()
 	{
 		if ( abs(layers[j].layer_output[i] - target[i]) > threshold )
 		{
+			break_error = abs(layers[j].layer_output[i] - target[i]);
 			return false;
 		}
 	}
@@ -189,6 +194,48 @@ void network::initialise_layers()
 	{
 		io::print_input(1, layers[0].field_width, layers[0].field_height, layers[0].layer_depth, IDB->batch_1_D, "input");
 	}
+}
+
+void network::write_weight_binary()
+{
+	std::ofstream myfile;
+	myfile.open("weights", std::ios::binary);
+	if (myfile.is_open())
+	{
+		char buffer;
+		for (int i=0; i<layers.size(); i++)
+		{
+			for (int j=0; j<layers[i].weights.size(); j++)
+			{
+				buffer = char(layers[i].weights[j]);
+				myfile.write(&buffer, sizeof(double));
+			}
+		}
+		myfile.close();
+	}
+	else
+		std::cout << "Unable to open weight binary file\n";
+}
+
+void network::read_weight_binary()
+{
+	std::ifstream myfile;
+	myfile.open("weights", std::ios::binary);
+	if (myfile.is_open())
+	{
+		char buffer;
+		for (int i=0; i<layers.size(); i++)
+		{
+			for (int j=0; j<layers[i].weights.size(); j++)
+			{
+				myfile.read(&buffer, sizeof(double));
+				layers[i].weights[j] = double(buffer);
+			}
+		}
+		myfile.close();
+	}
+	else
+		std::cout << "Unable to open weight binary file\n";
 }
 
 void network::print_network_info()

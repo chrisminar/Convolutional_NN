@@ -41,10 +41,12 @@ public:
 		filter_size,												//the size of the convolutional filter to use
 		batch_size;													//the number of images to train on
 	double	learning_rate,
-			error;
+			error,
+			break_error;
 
 	bool	verbose,
-			output;
+			output,
+			write;
 
 	//constructor
 	network(image_DB *idb);
@@ -79,6 +81,8 @@ public:
 	void run_softpool();
 
 	//io
+	void read_weight_binary();
+	void write_weight_binary();
 	void print_network_info();
 	void parse_network_file(std::string fname);
 
