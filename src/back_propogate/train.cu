@@ -166,7 +166,8 @@ void network::dw_fc(int i)
 	dim3 grid( int((layers[i].weights.size() - 0.5)/blocksize)+1, 1);
 	dim3 block(blocksize,1);
 	layers[i].dweight_r = thrust::raw_pointer_cast( &(layers[i].dweight[0]) );
-	kernels::calculate_fc_dweight<<<grid,block>>>(layers[i].dweight_r, layers[i].layer_input, layers[i].ddot_r, layers[i].field_width, layers[i].field_height, layers[i].field_width,
+	kernels::calculate_fc_dweight<<<grid,block>>>(layers[i].dweight_r, layers[i].layer_input, layers[i].ddot_r,
+													layers[i].field_width, layers[i].field_height, layers[i].field_width,
 													layers[i].layer_depth, layers[i].layer_depth_out, batch_size);
 }
 

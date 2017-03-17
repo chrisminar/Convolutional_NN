@@ -117,7 +117,7 @@ void network::run()
 bool network::isdone()
 {
 	int j = layers.size()-1;
-	double threshold = 0.25;
+	double threshold = 0.30;
 	for (int i=0; i<target.size(); i++)
 	{
 		if ( abs(layers[j].layer_output[i] - target[i]) > threshold )

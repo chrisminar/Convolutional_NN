@@ -48,14 +48,12 @@ int main(int argc, char **argv)
 
 //todo make print info dump to a file
 
-//todo biases
-//todo save/read weights to file
 //todo better momentum and training weight handleing
-//todo multiple batches
-//todo testing suite once thing has been run
+//todo biases
+//todo make functions to test weights over the trianing data
 //todo timing functions
 //todo speedup
-//todo make functions to test weights over the trianing data
+
 
 //general questions:
 //should weights be positive?

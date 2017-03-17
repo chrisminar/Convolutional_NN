@@ -94,7 +94,7 @@ cleanall: clean cleanexternal cleandoc
 
 # commands to run convNet
 run:
-	$(PROJ_ROOT)/bin/convNet
+	$(PROJ_ROOT)/bin/convNet -w
 	
 runo:
 	$(PROJ_ROOT)/bin/convNet -o
