@@ -10,7 +10,8 @@ CC = /usr/local/cuda-7.5/bin/nvcc $(OSXOPTS)
 #-lineinfo nvcc debug
 #-Xcompiler -Q passes something to gcc c++ compiler
 #-std=c++11 enables new cpp stuff, used for the random distribution
-CCFLAGS = -arch=compute_20 -O3 -std=c++11# -lineinfo
+#CCFLAGS = -arch=compute_20 -O3 -std=c++11# -lineinfo
+CCFLAGS = -arch=compute_20 -g -O0 -std=c++11# -lineinfo
 
 # variables
 RM = rm
@@ -93,8 +94,10 @@ cleanall: clean cleanexternal cleandoc
 ################################################################################
 
 # commands to run convNet
+#Run convnet with 'write' flag turned on
 run:
 	$(PROJ_ROOT)/bin/convNet -w
-	
+
+#Run Convnet with 'output' flag turned on
 runo:
 	$(PROJ_ROOT)/bin/convNet -o

@@ -126,7 +126,9 @@ bool network::isdone()
 			return false;
 		}
 	}
-	std::cout<< abs(layers[j].layer_output[0] - target[0]) << " " << layers[j].layer_output[0] << " " << target[0] << "\n";
+	std::cout << "break error for image 1: " << abs(layers[j].layer_output[0] - target[0])
+			  << " image 1 class 0 output: " << layers[j].layer_output[0]
+			  << " target: " << target[0] << "\n";
 	return true;
 }
 
@@ -144,7 +146,7 @@ void network::initialise_layers()
 	test_data_label_r = thrust::raw_pointer_cast( &(IDB->training_labels_D[0]) );
 
 	//initialse targets
-	target.resize(batch_size * 10);
+	target.resize(10000 * 10);
 	io::generate_target(target, IDB->batch_1_labels_D, batch_size, 0, 10);
 
 	//make layers
